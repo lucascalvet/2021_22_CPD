@@ -234,25 +234,25 @@ int main(int argc, char *argv[])
 	if (ret != PAPI_OK)
 		cout << "ERROR: PAPI_L1_DCM" << endl;
 
-	ret = PAPI_add_event(EventSet, PAPI_L2_DCM);
-	if (ret != PAPI_OK)
-		cout << "ERROR: PAPI_L2_DCM" << endl;
-	
-	ret = PAPI_add_event(EventSet, PAPI_L1_DCA);
-	if (ret != PAPI_OK)
-		cout << "ERROR: PAPI_L1_DCA" << endl;
-
 	ret = PAPI_add_event(EventSet, PAPI_L2_DCA);
 	if (ret != PAPI_OK)
 		cout << "ERROR: PAPI_L2_DCA" << endl;
 
-	ret = PAPI_add_event(EventSet, PAPI_L3_DCM);
+	ret = PAPI_add_event(EventSet, PAPI_L2_DCM);
 	if (ret != PAPI_OK)
-		cout << "ERROR: PAPI_L3_DCM" << endl;
+		cout << "ERROR: PAPI_L2_DCM" << endl;
 
-/* 	ret = PAPI_add_event(EventSet, PAPI_L3_DCA);
+	ret = PAPI_add_event(EventSet, PAPI_L3_DCA);
 	if (ret != PAPI_OK)
-		cout << "ERROR: PAPI_L3_DCA" << endl; */
+		cout << "ERROR: PAPI_L3_DCA" << endl;
+
+	ret = PAPI_add_event(EventSet, PAPI_MEM_WCY);
+	if (ret != PAPI_OK)
+		cout << "ERROR: PAPI_MEM_WCY" << endl;
+
+	ret = PAPI_add_event(EventSet, PAPI_TOT_CYC);
+	if (ret != PAPI_OK)
+		cout << "ERROR: PAPI_TOT_CYC" << endl;
 
 	op = 1;
 	do
@@ -269,6 +269,12 @@ int main(int argc, char *argv[])
 		cin >> lin;
 		col = lin;
 
+		if (op == 3)
+		{
+			cout << "Block Size? ";
+			cin >> blockSize;
+		}
+
 		// Start counting
 		ret = PAPI_start(EventSet);
 		if (ret != PAPI_OK)
@@ -283,8 +289,6 @@ int main(int argc, char *argv[])
 			OnMultLine(lin, col);
 			break;
 		case 3:
-			cout << "Block Size? ";
-			cin >> blockSize;
 			OnMultBlock(lin, col, blockSize);
 			break;
 		default:
@@ -296,11 +300,11 @@ int main(int argc, char *argv[])
 		if (ret != PAPI_OK)
 			cout << "ERROR: Stop PAPI" << endl;
 		printf("L1 DCM: %lld \n", values[0]);
-		printf("L2 DCM: %lld \n", values[1]);
-		printf("L1 DCA: %lld \n", values[2]);
-		printf("L2 DCA: %lld \n", values[3]);
-		printf("L3 DCA: %lld \n", values[4]);
-/* 		printf("L3 DCA: %lld \n", values[5]); */
+		printf("L2 DCA: %lld \n", values[1]);
+		printf("L2 DCM: %lld \n", values[2]);
+		printf("L3 DCA: %lld \n", values[3]);
+		printf("MEM WCY: %lld \n", values[4]);
+		printf("TOT CYC: %lld \n", values[5]);
 
 		ret = PAPI_reset(EventSet);
 		if (ret != PAPI_OK)
@@ -312,26 +316,25 @@ int main(int argc, char *argv[])
 	if (ret != PAPI_OK)
 		std::cout << "FAIL remove event" << endl;
 
-	ret = PAPI_remove_event(EventSet, PAPI_L2_DCM);
-	if (ret != PAPI_OK)
-		std::cout << "FAIL remove event" << endl;
-
-	ret = PAPI_remove_event(EventSet, PAPI_L1_DCA);
-	if (ret != PAPI_OK)
-		std::cout << "FAIL remove event" << endl;
-
 	ret = PAPI_remove_event(EventSet, PAPI_L2_DCA);
+	if (ret != PAPI_OK)
+		std::cout << "FAIL remove event" << endl;
+
+	ret = PAPI_remove_event(EventSet, PAPI_L2_DCM);
 	if (ret != PAPI_OK)
 		std::cout << "FAIL remove event" << endl;
 
 	ret = PAPI_remove_event(EventSet, PAPI_L3_DCM);
 	if (ret != PAPI_OK)
 		std::cout << "FAIL remove event" << endl;
-/* 
-	ret = PAPI_remove_event(EventSet, PAPI_L3_DCA);
-	if (ret != PAPI_OK)
-		std::cout << "FAIL remove event" << endl; */
 
+	ret = PAPI_remove_event(EventSet, PAPI_MEM_WCY);
+	if (ret != PAPI_OK)
+		std::cout << "FAIL remove event" << endl;
+
+	ret = PAPI_remove_event(EventSet, PAPI_TOT_CYC);
+	if (ret != PAPI_OK)
+		std::cout << "FAIL remove event" << endl;
 
 	ret = PAPI_destroy_eventset(&EventSet);
 	if (ret != PAPI_OK)
