@@ -324,7 +324,7 @@ int main(int argc, char *argv[])
 	if (ret != PAPI_OK)
 		std::cout << "FAIL remove event" << endl;
 
-	ret = PAPI_remove_event(EventSet, PAPI_L3_DCM);
+	ret = PAPI_remove_event(EventSet, PAPI_L3_DCA);
 	if (ret != PAPI_OK)
 		std::cout << "FAIL remove event" << endl;
 
