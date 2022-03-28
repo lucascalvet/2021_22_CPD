@@ -1,12 +1,12 @@
 # Performance evaluation of a single core
 
 This project was developed for the CPD Curricular Unit (Parallel and Distributed Computation) in the year 2021/22 by the following students:
-| Name | Email |
+|  |  |
 | ------ | ------ |
 | José Pedro Peixoto Ferreira | up201904515@edu.fe.up.pt |
 | Lucas Calvet Santos | up201904517@edu.fe.up.pt |
 | Sérgio Rodrigues da Gama | up201906690@edu.fe.up.pt |
-
+| | |
 
 ## Problem Description and Algorithms Explanation
 
@@ -90,7 +90,7 @@ Just by looking at the time, we can see that this algorithm is more efficient th
 
 The following is a comparison between the times of the two mentioned algorithms:
 
-![Graph Naive vs Line C++](./graphs/naive_vs_line_times_cpp.png)
+<img src="./graphs/naive_vs_line_times_cpp.png" alt="Graph Naive vs Line C++" width="500"/>
 
 ### C++ Block Multiplication
 
@@ -113,19 +113,17 @@ The Block Multiplication Algorithm seems to take more or less twice as long to r
 
 The following is a comparison between the times of the three algorithms:
 
-![Graph Naive vs Line vs Block C++](./graphs/naive_vs_line_vs_block_times_cpp.png)
-
----
+<img src="./graphs/naive_vs_line_vs_block_times_cpp.png" alt="Graph Naive vs Line vs Block C++" width="500"/>
 
 The following graphs show the comparison between Level 1 and Level 2 Data Cache Misses between the different algorithms:
 
-![L1 Data Cache Misses](./graphs/L1_data_cache_misses.png)
+<img src="./graphs/L1_data_cache_misses.png" alt="L1 Data Cache Misses" width="500"/>
 
-![L2 Data Cache Misses](./graphs/L2_data_cache_misses.png)
+<img src="./graphs/L2_data_cache_misses.png" alt="L2 Data Cache Misses" width="500"/>
 
 The following graph shows the comparison between the Rate of Waiting Cycles from the different C++ algorithms:
 
-![WCY Rate](./graphs/WCY_rate_cpp.png)
+<img src="./graphs/WCY_rate_cpp.png" alt="WCY Rate" width="500"/>
 
 
 ### Python Naive Multiplication
@@ -156,7 +154,8 @@ We can easily see that Python is much, much slower than C++ regarding these oper
 
 Unlike the Line Multiplication Algorithm in C++, the very same algorithm in Python doesn't have a better performance than the simpler, Naive approach. In fact, it was slower than the first algorithm in every iteration we tested. And consequently the gap of efficiency between Python and C++ got even bigger, with the ratio rising to 264 at the already mentioned size of 3000 by 3000.
 
-![Graph Naive vs Line Python](./graphs/naive_vs_line_times_python.png)
+<img src="./graphs/naive_vs_line_times_python.png" alt="Graph Naive vs Line Python" width="500"/>
+
 
 ## Conclusions
 
