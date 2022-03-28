@@ -86,7 +86,9 @@ We observe that as the matrix size increases, the Cache Miss Rate also increases
 | 8192 | 335.283 | 1.40382E+11 | 59305983948 | 1.30568E+11 | 2.201603369 | 1.30568E+11 | 56325393 | 1.57E+12 | 3.6E-05 | 13.11742 |
 | 10240 | 643.39 | 2.73296E+11 | 54953617395 | 2.45559E+11 | 4.468477781 | 2.45559E+11 | 104352448 | 3E+12 | 3.47E-05 | 13.35105 | 
 
-Just by looking at the time, we can see that this algorithm is more efficient than the Naive one. For instance, for a matrix size of 3000 by 3000, the Line Algorithm is about 7 times faster than the simpler one. In terms of the rates we observe similar results in the GFlops and Waiting Cycles Rate. On the other hand, the Cache Miss Rate presents a different behaviour, but we are unsure of the reliability of this particular metric.  
+Just by looking at the time, we can see that this algorithm is more efficient than the Naive one. For instance, for a matrix size of 3000 by 3000, the Line Algorithm is about 7 times faster than the simpler one. In terms of the rates we observe similar results in the GFlops and Waiting Cycles Rate. 
+
+The following is a comparison between the times of the two mentioned algorithms:
 
 ![Graph Naive vs Line C++](./graphs/naive_vs_line_times_cpp.png)
 
@@ -109,7 +111,22 @@ Just by looking at the time, we can see that this algorithm is more efficient th
 
 The Block Multiplication Algorithm seems to take more or less twice as long to reach the solution as the Line Multiplication Algorithm for a given matrix size. It's, however, less time-consuming than the Naive approach. This time, metrics like the GFlops, Waiting Cycles Rate and Cache Miss Rate stay nearly constant. The block size with the best performance appears to be 256, followed by 128. This could be because the increase from 128 to 256 blocks is beneficial, but increasing to 512, results in blocks that are too big and therefore the application of the Naive Algorithm slows the process down. The advantage that dividing in blocks brings to the table, is under the presupposition that the blocks are small enough that applying a less effective strategy, like the first one, doesn't affect the overall performance.
 
+The following is a comparison between the times of the three algorithms:
+
 ![Graph Naive vs Line vs Block C++](./graphs/naive_vs_line_vs_block_times_cpp.png)
+
+---
+
+The following graphs show the comparison between Level 1 and Level 2 Data Cache Misses between the different algorithms:
+
+![L1 Data Cache Misses](./graphs/L1_data_cache_misses.png)
+
+![L2 Data Cache Misses](./graphs/L2_data_cache_misses.png)
+
+The following graph shows the comparison between the Rate of Waiting Cycles from the different C++ algorithms:
+
+![WCY Rate](./graphs/WCY_rate_cpp.png)
+
 
 ### Python Naive Multiplication
 
@@ -123,7 +140,7 @@ The Block Multiplication Algorithm seems to take more or less twice as long to r
 | 2600 | 2564.582 |
 | 3000 | 3991.616 | 
 
-We can easily see that Python is much, much slower than C++ regarding this operations. For a matrix of 3000 by 3000, Python takes 250 times more seconds than C++.
+We can easily see that Python is much, much slower than C++ regarding these operations. For a matrix of 3000 by 3000, Python takes 250 times more seconds than C++.
 
 ### Python Line Multiplication
 
@@ -140,12 +157,6 @@ We can easily see that Python is much, much slower than C++ regarding this opera
 Unlike the Line Multiplication Algorithm in C++, the very same algorithm in Python doesn't have a better performance than the simpler, Naive approach. In fact, it was slower than the first algorithm in every iteration we tested. And consequently the gap of efficiency between Python and C++ got even bigger, with the ratio rising to 264 at the already mentioned size of 3000 by 3000.
 
 ![Graph Naive vs Line Python](./graphs/naive_vs_line_times_python.png)
-
-![L1 Data Cache Misses](./graphs/L1_data_cache_misses.png)
-
-![L2 Data Cache Misses](./graphs/L2_data_cache_misses.png)
-
-![WCY Rate](./graphs/wcy_rate_cpp.png)
 
 ## Conclusions
 
