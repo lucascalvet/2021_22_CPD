@@ -4,10 +4,10 @@ import java.util.Date;
 
 public class Node {
 
-    private InetAddress multicastAddr;
-    private Integer multicastPort;
-    private String nodeId;
-    private Integer storePort;
+    private final InetAddress multicastAddr;
+    private final Integer multicastPort;
+    private final String nodeId;
+    private final Integer storePort;
 
     public Node(InetAddress multicastAddr, Integer multicastPort, String nodeId, Integer storePort) {
         this.multicastAddr = multicastAddr;
@@ -31,6 +31,8 @@ public class Node {
                 String time = reader.readLine();
 
                 System.out.println("New client connected: "+ time);
+
+
 
                 OutputStream output = socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(output, true);

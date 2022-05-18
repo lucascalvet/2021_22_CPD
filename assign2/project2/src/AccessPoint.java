@@ -25,6 +25,10 @@ public class AccessPoint {
         return port;
     }
 
+    public String getString(){
+        return ip.getHostAddress() + ":" + port;
+    }
+
     @Override
     public boolean equals(Object o) {
         // self check
