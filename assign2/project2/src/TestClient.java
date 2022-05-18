@@ -33,13 +33,24 @@ public class TestClient {
             opnd = args[2];
         }
 
+        System.out.println("Ip: " + ap.getIp());
+        System.out.println("Port: " + ap.getPort());
+        System.out.println("NArgs: " + nArgs);
+        System.out.println("Operation: " + op);
         // starting the tcp server
         try (Socket socket = new Socket(ap.getIp(), ap.getPort())) {
 
+            System.out.println("Socket created");
             // send command to server
             OutputStream output = socket.getOutputStream();
             PrintWriter writer = new PrintWriter(output, true);
             writer.println(getCommand());
+            if(op.equals("put")){
+                System.out.println("File: " + opnd);
+                String value = Utils.getFileContent(opnd);
+                System.out.println("Value: " + value);
+                System.out.println("Hash: " + Utils.encodeToHex(value));
+            }
 
             // receive server response to issued commmand
             InputStream input = socket.getInputStream();
