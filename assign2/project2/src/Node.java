@@ -28,14 +28,45 @@ public class Node {
                 InputStream input = socket.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
-                String time = reader.readLine();
+                String commandLine = reader.readLine();
 
-                System.out.println("New client connected: "+ time);
-
-
+                String[] command = commandLine.split("\\s+");
 
                 OutputStream output = socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(output, true);
+
+                if (command.length == 0) {
+                    writer.println("No operation given");
+                    continue;
+                }
+
+                String op = command[0];
+                String opArg = null;
+
+                if(command.length == 2) opArg = command[1];
+
+                switch (op) {
+                    case "put":
+                        if (opArg == null){
+                            writer.println("No argument given");
+                            continue;
+                        }
+                        break;
+                    case "get":
+                        break;
+                    case "delete":
+                        if (opArg == null){
+                            writer.println("No argument given");
+                            continue;
+                        }
+                        break;
+                    case "join":
+                        break;
+                    case "leave":
+                        break;
+                    default:
+                        writer.println("Invalid operation given");
+                }
 
                 writer.println(new Date().toString());
             }

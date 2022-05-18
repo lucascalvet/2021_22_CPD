@@ -5,7 +5,7 @@ import java.util.List;
 
 // usage: java TestClient <node_ap> <operation> [<opnd>]
 public class TestClient {
-    public static List<String> operations = Arrays.asList("put", "get", "delete");
+    public static List<String> operations = Arrays.asList("put", "get", "delete", "join", "leave");
     private static String op;
     private static AccessPoint ap;
     private static String opnd;
