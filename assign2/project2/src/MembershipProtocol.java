@@ -1,11 +1,16 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public class MembershipProtocol {
+public class MembershipProtocol implements Runnable {
     private final Integer port;
     private final String nodeId;
     private final String hashedId;
+    private final int NTHREADS = 10;
+    private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
+    private Thread runningThread = null;
 
     /*
     Messages Format:
@@ -21,6 +26,9 @@ public class MembershipProtocol {
     }
 
     public void run(){
+        synchronized (this) {
+            this.runningThread = Thread.currentThread();
+        }
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             Socket socket = serverSocket.accept();
             System.out.println("Accepted New Socket");
@@ -65,5 +73,6 @@ public class MembershipProtocol {
             throw new RuntimeException(e);
         }
 
+        this.threadPool.shutdown();
     }
 }

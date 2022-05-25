@@ -4,11 +4,16 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public class StoreOperations {
+public class StoreOperations implements Runnable{
     private final Integer port;
     private final String nodeId;
     private final String hashedId;
+    private final int NTHREADS = 10;
+    private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
+    private Thread runningThread = null;
 
     StoreOperations(String nodeId, Integer port){
         this.port = port;
@@ -16,27 +21,10 @@ public class StoreOperations {
         this.hashedId = Utils.encodeToHex(nodeId);
     }
 
-    private List<String> readMembers(){
-        List<String> nodes = new ArrayList<>();
-        String line;
-        File membershipLog = new File(hashedId + "\\membership_log.txt");
-        try {
-            FileReader fr = new FileReader(membershipLog);
-            BufferedReader br = new BufferedReader(fr);
-            while((line = br.readLine()) != null){
-                if(line.length() == Utils.getHashEncodeSize()){
-                    nodes.add(line);
-                }
-            }
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return nodes;
-    }
-
     public void run(){
+        synchronized (this) {
+            this.runningThread = Thread.currentThread();
+        }
         try (ServerSocket serverSocket = new ServerSocket(port)) {
 
             System.out.println("Server is listening on port " + port);
@@ -64,78 +52,29 @@ public class StoreOperations {
 
                 String op = command[0];
                 String opArg = null;
+                int replicationFactor = -1;
 
-                if(command.length == 2) opArg = command[1];
+                if(command.length >= 2) opArg = command[1];
+                if(command.length == 3) replicationFactor = Integer.valueOf(command[2]);
 
-                switch (op) {
-                    case "put":
-                        if (opArg == null){
-                            writer.println("No argument given");
-                            continue;
-                        }
-                        else{
-                            String value = Utils.getFileContent(opArg);
-                            String hash = Utils.encodeToHex(value);
-                            String closestNode = Utils.closestNode(readMembers(), hash);
-
-                            System.out.println("File: " + opArg);
-                            System.out.println("Value: " + value);
-                            System.out.println("Hash: " + hash);
-
-                            //Replication?
-                            if(closestNode.equals(hashedId)){
-                                Utils.writeToFile(hashedId + "\\storage\\" + hash + ".txt", value, true);
-                                writer.println("Pair successfully stored!");
-                            }
-                            else{
-                                System.out.println(hashedId + " is not the closest node to the hash " + hash);
-                                //TODO: Send put to the closest node
-                            }
-                        }
-                        break;
-                    case "get":
-                        if (opArg == null){
-                            writer.println("No argument given");
-                            continue;
-                        }
-                        else{
-                            String hash = opArg;
-                            String closestNode = Utils.closestNode(readMembers(), hash);
-
-                            //Replication?
-                            if(Utils.fileExists(hashedId + "\\storage\\" + hash + ".txt")){
-                                String value = Utils.getFileContent(hashedId + "\\storage\\" + hash + ".txt");
-                                writer.println(value);
-                            }
-                            else{
-                                System.out.println(hashedId + " doesn't have the value for the hash " + hash);
-                                //TODO: Send get to the closest node
-                            }
-                        }
-                        break;
-                    case "delete":
-                        if (opArg == null){
-                            writer.println("No argument given");
-                            continue;
-                        }
-                        else{
-                            String hash = opArg;
-                            String closestNode = Utils.closestNode(readMembers(), hash);
-
-                            //Replication?
-                            if(Utils.fileExists(hashedId + "\\storage\\" + hash + ".txt")){
-                                if(Utils.deleteFile(hashedId + "\\storage\\" + hash + ".txt")){
-                                    writer.println("Pair successfully deleted!");
-                                }
-                            }
-                            else{
-                                System.out.println(hashedId + " doesn't have the hash " + hash + " stored");
-                                //TODO: Send delete to the closest node
-                            }
-                        }
-                        break;
-                    default:
-                        writer.println("Invalid Op");
+                if (opArg == null){
+                    writer.println("No argument given");
+                    continue;
+                }
+                else{
+                    switch (op) {
+                        case "put":
+                            this.threadPool.execute(new PutProcessor(nodeId, opArg, replicationFactor, port, writer));
+                            break;
+                        case "get":
+                            this.threadPool.execute(new GetProcessor(nodeId, opArg, port, writer));
+                            break;
+                        case "delete":
+                            this.threadPool.execute(new DeleteProcessor(nodeId, opArg, replicationFactor, port, writer));
+                            break;
+                        default:
+                            writer.println("Invalid Op");
+                    }
                 }
 
                 writer.println(new Date().toString());
@@ -145,5 +84,6 @@ public class StoreOperations {
             System.out.println("Server exception: " + ex.getMessage());
             ex.printStackTrace();
         }
+        this.threadPool.shutdown();
     }
 }

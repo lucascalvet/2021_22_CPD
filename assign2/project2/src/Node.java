@@ -5,6 +5,8 @@ import java.net.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Node {
 
@@ -15,6 +17,9 @@ public class Node {
     private final Integer storePort;
     private MembershipProtocol membershipProtocol;
     private StoreOperations storeOperations;
+    private final int NTHREADS = 2;
+    private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
+    private Thread runningThread = null;
 
     public Node(InetAddress multicastAddr, Integer multicastPort, String nodeId, Integer storePort) {
         this.multicastAddr = multicastAddr;
@@ -22,21 +27,26 @@ public class Node {
         this.nodeId = nodeId;
         this.hashedId = Utils.encodeToHex(nodeId);
         this.storePort = storePort;
-        this.membershipProtocol = new MembershipProtocol(nodeId, multicastPort);
+        this.membershipProtocol = new MembershipProtocol(multicastAddr.getHostName(), multicastPort);
         this.storeOperations = new StoreOperations(nodeId, storePort);
         createDirectories();
     }
 
     public void createDirectories(){
         Utils.makeDir(hashedId);
-        Utils.writeToFile(hashedId + "\\membership_log.txt", hashedId + "\n", true);
+        Utils.writeToFile(hashedId + "\\membership_log.txt", nodeId + " 0\n", true);
         Utils.makeDir(hashedId + "\\storage");
     }
 
     public void run() {
+        synchronized (this) {
+            this.runningThread = Thread.currentThread();
+        }
         // create socket to membership
-        membershipProtocol.run();
+        this.threadPool.execute(this.membershipProtocol);
         // create socket to store
-        storeOperations.run();
+        this.threadPool.execute(this.storeOperations);
+
+        this.threadPool.shutdown();
     }
 }

@@ -1,6 +1,4 @@
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -8,11 +6,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
-import java.util.List;
+import java.util.*;
 
 public class Utils {
-    private final static String BASE_DIR = "..\\src\\filesystem\\";
+    private final static String BASE_DIR = "src\\filesystem\\";
     private static final int HASH_BITS_SIZE = 256;
     private static final int HASH_ENCODE_SIZE = 64;
     private static final BigInteger CEIL = BigInteger.ONE.shiftLeft(256);
@@ -84,12 +81,22 @@ public class Utils {
 
     private static BigInteger hashDistance(String firstString, String secondString){
         BigInteger firstBi = stringToHex(firstString).mod(CEIL);
-        BigInteger secondBi = stringToHex(secondString).mod(CEIL);
+        BigInteger secondBi = stringToHex(encodeToHex(secondString)).mod(CEIL);
         BigInteger distance = secondBi.subtract(firstBi);
         if (distance.signum() == -1){
             distance.add(CEIL);
         }
         return distance;
+    }
+
+    private static Comparator<String> compareHashDistance(String target){
+        return Comparator.comparing((String node) -> hashDistance(target, node));
+    }
+
+    public static List<String> getActiveMembersSorted(String hashedId, String hashedTarget){
+        List<String> activeNodes = getActiveMembers(hashedId);
+        activeNodes.sort(compareHashDistance(hashedTarget));
+        return activeNodes;
     }
 
     public static String closestNode(List<String> nodes, String target){
@@ -131,6 +138,10 @@ public class Utils {
 
     public static boolean writeToFile(String relativePath, String content, boolean create){
         String filePath = BASE_DIR + relativePath;
+        Path currentRelativePath = Paths.get("");
+        String s = currentRelativePath.toAbsolutePath().toString();
+        System.out.println("Current absolute path is: " + s);
+        System.out.println("FP: " + filePath);
         File newFile = new File(filePath);
         try {
             if(create){
@@ -145,6 +156,38 @@ public class Utils {
             throw new RuntimeException(e);
         }
         return true;
+    }
+
+    public static Map<String, Integer> readMembers(String hashedId){
+        Map<String, Integer> nodes = new HashMap<String, Integer>();
+        String line;
+        File membershipLog = new File(BASE_DIR + hashedId + "\\membership_log.txt");
+        try {
+            FileReader fr = new FileReader(membershipLog);
+            BufferedReader br = new BufferedReader(fr);
+            while((line = br.readLine()) != null){
+                String[] splited = line.split("\\s+");
+                if(splited.length == 2){
+                    nodes.put(splited[0], Integer.valueOf(splited[1]));
+                }
+            }
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return nodes;
+    }
+
+    public static List<String> getActiveMembers(String hashedId){
+        Map<String, Integer> nodes = readMembers(hashedId);
+        List<String> activeNodes = new ArrayList<>();
+        for (Map.Entry<String, Integer> node : nodes.entrySet()) {
+            if(node.getValue() % 2 == 0){
+                activeNodes.add(node.getKey());
+            }
+        }
+        return activeNodes;
     }
 
 
