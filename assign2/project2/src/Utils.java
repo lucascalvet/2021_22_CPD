@@ -8,9 +8,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.List;
 
 public class Utils {
+    private final static String BASE_DIR = "..\\src\\filesystem\\";
     private static final int HASH_BITS_SIZE = 256;
     private static final int HASH_ENCODE_SIZE = 64;
     private static final BigInteger CEIL = BigInteger.ONE.shiftLeft(256);
@@ -40,11 +42,13 @@ public class Utils {
         return bytesToHex(encode(originalString));
     }
 
-    public static boolean fileExists(String filePath){
+    public static boolean fileExists(String relativePath){
+        String filePath = BASE_DIR + relativePath;
         return Files.exists(Paths.get(filePath));
     }
 
-    public static boolean deleteFile(String filePath){
+    public static boolean deleteFile(String relativePath){
+        String filePath = BASE_DIR + relativePath;
         try {
             return Files.deleteIfExists(Paths.get(filePath));
         } catch (IOException e) {
@@ -52,7 +56,8 @@ public class Utils {
         }
     }
 
-    public static String getFileContent(String filePath){
+    public static String getFileContent(String relativePath){
+        String filePath = BASE_DIR + relativePath;
         byte[] encoded = new byte[0];
         try {
             Path path = Paths.get(filePath);
@@ -117,13 +122,15 @@ public class Utils {
         return dir.delete();
     }
 
-    public static boolean makeDir(String dirPath){
+    public static boolean makeDir(String relativePath){
+        String dirPath = BASE_DIR + relativePath;
         File dir = new File(dirPath);
         deleteDir(dir);
         return dir.mkdir();
     }
 
-    public static boolean writeToFile(String filePath, String content, boolean create){
+    public static boolean writeToFile(String relativePath, String content, boolean create){
+        String filePath = BASE_DIR + relativePath;
         File newFile = new File(filePath);
         try {
             if(create){
@@ -139,6 +146,7 @@ public class Utils {
         }
         return true;
     }
+
 
     public static int getHashEncodeSize(){
         return HASH_ENCODE_SIZE;
