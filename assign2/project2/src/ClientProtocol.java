@@ -1,13 +1,14 @@
+import processors.client.*;
+import utils.Utils;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class StoreOperations implements Runnable{
+public class ClientProtocol implements Runnable{
     private final Integer port;
     private final String nodeId;
     private final String hashedId;
@@ -15,7 +16,7 @@ public class StoreOperations implements Runnable{
     private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private Thread runningThread = null;
 
-    StoreOperations(String nodeId, Integer port){
+    ClientProtocol(String nodeId, Integer port){
         this.port = port;
         this.nodeId = nodeId;
         this.hashedId = Utils.encodeToHex(nodeId);
@@ -55,7 +56,7 @@ public class StoreOperations implements Runnable{
                 int replicationFactor = -1;
 
                 if(command.length >= 2) opArg = command[1];
-                if(command.length == 3) replicationFactor = Integer.valueOf(command[2]);
+                if(command.length == 3) replicationFactor = Integer.parseInt(command[2]);
 
                 if (opArg == null){
                     writer.println("No argument given");

@@ -1,3 +1,55 @@
+/** INTER NODE MESSAGES FORMAT **/
+
+// JOIN       (size: 4) -> J <node_id> <node_counter> <port_to_receive_logs>
+// LEAVE      (size: 3) -> L <node_id> <node_counter>
+// MEMBERSHIP (size: -) -> M <node_id> /n LOGS /n logs_file (each line is a log file line) /n MEMBERS /n members_list (each line is a member)
+
+
+/** MESSAGES FROM TEST CLIENT **/
+
+// node receives "join" from client -> accept connections in port
+//                                  -> multicast "J" to other nodes
+//                                  -> upon accepting 3 connections in port, stop accepting more of them
+//                                  -> if it does not receive 3 connections:
+//                                          -> retransmit the "J" to a total of 3 times including the first
+//                                  -> if it receives crete membership logs and members list
+
+// node receives "leave" from client -> multicast "L" to other nodes
+
+
+/** MESSAGES FROM OTHER NODES **/
+
+// node receives "J" from node -> update membership log with <node id> and <membership counter> received
+//                             -> if node is not in members list or if there is and there are changes in the message:
+//                                  -> update members list adding node id
+//                                  -> !!some nodes!! do the initialization process:
+//                                                                         -> waits for a random time length
+//                                                                         -> send "M": members list and 32 most recent logs (Through TCP)
+//                             -> else if node is not in members list:
+//                                  -> ignore "J" from that node
+// node receives "L" from node -> update membership log with <node id> and <membership counter> received
+//                             -> update members list removing node id
+
+// node receives "M" from node -> update the membership logs
+//                             -> prevent outdated nodes from doing this updates
+
+
+/** OTHER PROTOCOL MECHANICS **/
+
+// This !!some nodes!! have to be updated -> how to find the ones updated?
+
+// on every 1 second one node should broadcast the most recent 32 logs
+
+// the membership log should be keep with only one log for node -> the node with the largest counter
+//                                                              -> do a cleaning function
+
+import processors.client.JoinProcessor;
+import processors.client.LeaveProcessor;
+import processors.node.JMessageProcessor;
+import processors.node.LMessageProcessor;
+import processors.node.MMessageProcessor;
+import utils.Utils;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -11,14 +63,9 @@ public class MembershipProtocol implements Runnable {
     private final int NTHREADS = 10;
     private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private Thread runningThread = null;
+    private final String invalidMessage = "InvalidMessage";
+    private int counter = 0;
 
-    /*
-    Messages Format:
-
-    JOIN MESSAGE -> J <node_id> <node_counter>
-    LEAVE MESSAGE -> L <node_id> <node_counter>
-    MEMBERSHIP MESSAGE -> M <node_id> <node_counter> /n logs_file (each line is a log file line)
-     */
     MembershipProtocol(String nodeId, Integer port){
         this.port = port;
         this.nodeId = nodeId;
@@ -38,37 +85,62 @@ public class MembershipProtocol implements Runnable {
 
             String commandLine = reader.readLine();
 
-            String[] command = commandLine.split("\\s+");
+            String[] message = commandLine.split("\\s+");
 
             OutputStream output = socket.getOutputStream();
             PrintWriter writer = new PrintWriter(output, true);
 
-            String op = command[0];
+            String msgId = message[0];
             String opArg = null;
 
-            // checks for right number of arguments in case of J and L
-            if(op.equals("J") || op.equals("L") && command.length != 3){
-                writer.println("Invalid Op");
+            switch(msgId) {
+                case "join":
+                    this.threadPool.execute(new JoinProcessor(nodeId, opArg, port, writer, counter));
+                    break;
+                case "leave":
+                    this.threadPool.execute(new LeaveProcessor(nodeId, opArg, port, writer, counter));
+                    break;
             }
 
-            // update membership log
-            switch (op){
+            // TODO create new socket connection for membership inter node messages
+
+            // checks for valid arguments
+            if(msgId.equals("J") || msgId.equals("L") || msgId.equals("M")){
+                writer.println(invalidMessage);
+            }
+
+            switch (msgId){
+                // receives a J message
                 case "J":
-                    // update membership log
-                    String new_log = "join " + command[1] + command[2];
-                    Utils.writeToFile(hashedId  + "\\membership_log.txt", new_log, false);
+                    if(message.length != 4){
+                        writer.println(invalidMessage);
+                        return;
+                    }
+                    if(counter != 0) counter++;
+
+                    this.threadPool.execute(new JMessageProcessor(nodeId, opArg, port, writer, message, counter));
                     break;
+                // receives a L message
                 case "L":
-                    new_log = "leave " + command[1] + command[2];
-                    Utils.writeToFile(hashedId + "\\membership_log.txt", new_log, false);
+                    if(message.length != 3){
+                        writer.println(invalidMessage);
+                        return;
+                    }
+                    counter--;
+
+                    this.threadPool.execute(new LMessageProcessor(nodeId, opArg, port, writer, message, counter));
                     break;
+                // receives a M message
                 case "M":
-
+                    this.threadPool.execute(new MMessageProcessor(nodeId, opArg, port, writer, message, counter, reader));
                     break;
+                // invalid message
+                case invalidMessage:
+                    throw new RuntimeException(invalidMessage);
+                // message not recognized
                 default:
+                    writer.println(invalidMessage);
             }
-
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

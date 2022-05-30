@@ -1,4 +1,7 @@
-import jdk.jshell.execution.Util;
+package processors.client;
+
+import utils.MessageSender;
+import utils.Utils;
 
 import java.io.PrintWriter;
 import java.net.UnknownHostException;
@@ -16,7 +19,7 @@ public class GetProcessor implements Runnable{
     private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private Thread runningThread = null;
 
-    GetProcessor(String nodeId, String key, int port, PrintWriter writer){
+    public GetProcessor(String nodeId, String key, int port, PrintWriter writer){
         this.port = port;
         this.nodeId = nodeId;
         this.key = key;
@@ -25,7 +28,6 @@ public class GetProcessor implements Runnable{
 
         System.out.println("Key: " + key);
     }
-
 
     public void run(){
         synchronized (this) {
@@ -50,4 +52,3 @@ public class GetProcessor implements Runnable{
         this.threadPool.shutdown();
     }
 }
-

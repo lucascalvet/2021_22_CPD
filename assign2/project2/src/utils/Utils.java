@@ -1,3 +1,5 @@
+package utils;
+
 import java.io.*;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -193,5 +195,10 @@ public class Utils {
 
     public static int getHashEncodeSize(){
         return HASH_ENCODE_SIZE;
+    }
+
+    public static int updateLogs(){
+        //TODO
+        return 0;
     }
 }

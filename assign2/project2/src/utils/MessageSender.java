@@ -1,3 +1,5 @@
+package utils;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -10,13 +12,7 @@ public class MessageSender implements Runnable{
     private static String message;
     private String answer;
 
-    MessageSender(AccessPoint ap, String message){
-        this.ap = ap;
-        this.message = message;
-        this.answer = "No answer yet!";
-    }
-
-    MessageSender(String ip, Integer port, String message) throws UnknownHostException {
+    public MessageSender(String ip, Integer port, String message) throws UnknownHostException {
         this.ap = new AccessPoint(ip + ":" + port.toString());
         this.message = message;
         this.answer = "No answer yet!";

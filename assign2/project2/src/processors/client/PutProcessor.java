@@ -1,4 +1,7 @@
-import jdk.jshell.execution.Util;
+package processors.client;
+
+import utils.MessageSender;
+import utils.Utils;
 
 import java.io.PrintWriter;
 import java.net.UnknownHostException;
@@ -20,7 +23,7 @@ public class PutProcessor implements Runnable{
     private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private Thread runningThread = null;
 
-    PutProcessor(String nodeId, String opArg, int replicationFactor, int port, PrintWriter writer){
+    public PutProcessor(String nodeId, String opArg, int replicationFactor, int port, PrintWriter writer){
         this.port = port;
         this.replicationFactor = replicationFactor;
         if(replicationFactor == -1){
@@ -39,7 +42,6 @@ public class PutProcessor implements Runnable{
         System.out.println("Value: " + value);
         System.out.println("Key: " + key);
     }
-
 
     public void run(){
         synchronized (this) {

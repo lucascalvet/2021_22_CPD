@@ -1,4 +1,7 @@
-import jdk.jshell.execution.Util;
+package processors.client;
+
+import utils.MessageSender;
+import utils.Utils;
 
 import java.io.PrintWriter;
 import java.net.UnknownHostException;
@@ -18,7 +21,7 @@ public class DeleteProcessor implements Runnable{
     private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private Thread runningThread = null;
 
-    DeleteProcessor(String nodeId, String key, int replicationFactor, int port, PrintWriter writer){
+    public DeleteProcessor(String nodeId, String key, int replicationFactor, int port, PrintWriter writer){
         this.port = port;
         this.replicationFactor = replicationFactor;
         this.nodeId = nodeId;
@@ -28,7 +31,6 @@ public class DeleteProcessor implements Runnable{
 
         System.out.println("Key: " + key);
     }
-
 
     public void run(){
         synchronized (this) {

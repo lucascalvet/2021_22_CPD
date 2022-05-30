@@ -34,7 +34,7 @@ public class ThreadPooledServer implements Runnable {
                     break;
                 }
                 throw new RuntimeException(
-                        "Error accepting client connection", e);
+                        "Error accepting processors.client connection", e);
             }
             this.threadPool.execute(
                     new WorkerRunnable(clientSocket,

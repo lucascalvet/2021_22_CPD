@@ -1,10 +1,6 @@
-import jdk.jshell.execution.Util;
+import utils.Utils;
 
-import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -16,7 +12,7 @@ public class Node {
     private final String hashedId;
     private final Integer storePort;
     private MembershipProtocol membershipProtocol;
-    private StoreOperations storeOperations;
+    private ClientProtocol storeOperations;
     private final int NTHREADS = 2;
     private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private Thread runningThread = null;
@@ -28,7 +24,7 @@ public class Node {
         this.hashedId = Utils.encodeToHex(nodeId);
         this.storePort = storePort;
         this.membershipProtocol = new MembershipProtocol(multicastAddr.getHostName(), multicastPort);
-        this.storeOperations = new StoreOperations(nodeId, storePort);
+        this.storeOperations = new ClientProtocol(nodeId, storePort);
         createDirectories();
     }
 
