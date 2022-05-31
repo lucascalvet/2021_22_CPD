@@ -53,7 +53,8 @@ public class ClientProtocol implements Runnable{
                     writer.println("No message given");
                     continue;
                 }
-                
+
+                //If the first character is P, G or D we know the message is from another node
                 if(commandLine.charAt(0) == 'P' || commandLine.charAt(0) == 'G' || commandLine.charAt(0) == 'D'){
                     command = commandLine.split("\\|");
                     if(command.length >= 3) replicationFactor = Integer.parseInt(command[2]);

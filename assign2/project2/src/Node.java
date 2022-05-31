@@ -35,7 +35,7 @@ public class Node {
     public void createDirectories(){
         Utils.makeDir(hashedId);
         //Utils.writeToFile(hashedId + "\\membership_log.txt", nodeId + " 0\n", true);
-        Utils.writeToFile(hashedId + "\\membership_log.txt", nodeId + " 0\n127.0.0.1 0\n127.0.0.2 0\n127.0.0.3 0\n127.0.0.6 0\n127.0.0.5 0\n", true);
+        Utils.writeToFile(hashedId + "\\membership_log.txt", "127.0.0.1 0\n127.0.0.2 0\n127.0.0.3 0\n127.0.0.6 0\n127.0.0.5 0\n", true);
         Utils.makeDir(hashedId + "\\storage");
     }
 

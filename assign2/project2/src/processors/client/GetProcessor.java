@@ -53,10 +53,10 @@ public class GetProcessor implements Runnable{
                         try {
                             System.out.println("GP ASKING " + node);
                             this.threadPool.execute(new MessageSender(node, port, "G|" + key));
-                            break;
                         } catch (UnknownHostException e) {
                             throw new RuntimeException(e);
                         }
+                        break;
                     }
                 }
             }

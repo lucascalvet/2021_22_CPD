@@ -29,7 +29,8 @@ public class DeleteProcessor implements Runnable{
         this.hashedId = Utils.encodeToHex(nodeId);
         this.writer = writer;
 
-        System.out.println("Key: " + key);
+        System.out.println("DP Key: " + key);
+        System.out.println("DP Replication Factor: " + replicationFactor);
     }
 
     public void run(){
@@ -40,6 +41,7 @@ public class DeleteProcessor implements Runnable{
         int nextRep = replicationFactor;
         if(Utils.fileExists(hashedId + "\\storage\\" + key + ".txt")){
             nextRep -= 1;
+            System.out.println("DP FileExists");
             if(Utils.deleteFile(hashedId + "\\storage\\" + key + ".txt")){
                 writer.println("Pair successfully deleted!");
             }
@@ -49,19 +51,22 @@ public class DeleteProcessor implements Runnable{
             for(String node : activeNodesSorted){
                 if(!node.equals(nodeId)){
                     try {
+                        System.out.println("DP Send Delete to " + node);
                         this.threadPool.execute(new MessageSender(node, port, "D|" + key + "|" + String.valueOf(nextRep)));
                     } catch (UnknownHostException e) {
                         throw new RuntimeException(e);
                     }
+                    break;
                 }
             }
         }
-        if(nextRep > 0){
+        else if (nextRep > 0){
             boolean send = false;
             boolean sent = false;
             for(String node : activeNodesSorted){
                 if(send){
                     try {
+                        System.out.println("DP Send Delete to " + node);
                         this.threadPool.execute(new MessageSender(node, port, "D|" + key + "|" + String.valueOf(nextRep)));
                     } catch (UnknownHostException e) {
                         throw new RuntimeException(e);
@@ -75,6 +80,7 @@ public class DeleteProcessor implements Runnable{
             }
             if(!sent){
                 try {
+                    System.out.println("DP Send Delete to " + activeNodesSorted.get(0));
                     this.threadPool.execute(new MessageSender(activeNodesSorted.get(0), port, "D|" + key + "|" + String.valueOf(nextRep)));
                 } catch (UnknownHostException e) {
                     throw new RuntimeException(e);
