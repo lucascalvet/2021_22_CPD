@@ -33,7 +33,7 @@ public class LeaveProcessor implements Runnable {
 
         // multicasting message
         try {
-            this.threadPool.execute(new MessageMulticast());
+            this.threadPool.execute(new MessageMulticast(nodeId, port, ""));
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }

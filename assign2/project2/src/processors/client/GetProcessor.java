@@ -35,16 +35,28 @@ public class GetProcessor implements Runnable{
         }
         if(Utils.fileExists(hashedId + "\\storage\\" + key + ".txt")){
             String value = Utils.getFileContent(hashedId + "\\storage\\" + key + ".txt");
+            System.out.println("GP Value Fetched: " + value);
             writer.println(value);
         }
         else{
             List<String> activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
-            for(String node : activeNodesSorted){
-                if(!node.equals(nodeId)){
-                    try {
-                        this.threadPool.execute(new MessageSender(node, port, "get " + key));
-                    } catch (UnknownHostException e) {
-                        throw new RuntimeException(e);
+            for(int i = 0; i < activeNodesSorted.size(); i++){
+                System.out.println("GP AN" + Integer.toString(i) + "->" + activeNodesSorted.get(i));
+            }
+            if(activeNodesSorted.get(0).equals(nodeId)){
+                System.out.println("GP Value Not Found");
+                writer.println("Value Not Found");
+            }
+            else{
+                for(String node : activeNodesSorted){
+                    if(!node.equals(nodeId)){
+                        try {
+                            System.out.println("GP ASKING " + node);
+                            this.threadPool.execute(new MessageSender(node, port, "G|" + key));
+                            break;
+                        } catch (UnknownHostException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                 }
             }

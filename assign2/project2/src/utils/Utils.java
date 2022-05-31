@@ -185,7 +185,7 @@ public class Utils {
         Map<String, Integer> nodes = readMembers(hashedId);
         List<String> activeNodes = new ArrayList<>();
         for (Map.Entry<String, Integer> node : nodes.entrySet()) {
-            if(node.getValue() % 2 == 0){
+            if(!activeNodes.contains(node) && node.getValue() % 2 == 0){
                 activeNodes.add(node.getKey());
             }
         }

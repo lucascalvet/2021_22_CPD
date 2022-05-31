@@ -36,6 +36,7 @@ public class DeleteProcessor implements Runnable{
         synchronized (this) {
             this.runningThread = Thread.currentThread();
         }
+        List<String> activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
         int nextRep = replicationFactor;
         if(Utils.fileExists(hashedId + "\\storage\\" + key + ".txt")){
             nextRep -= 1;
@@ -43,46 +44,40 @@ public class DeleteProcessor implements Runnable{
                 writer.println("Pair successfully deleted!");
             }
         }
-        if(nextRep != 0){
-            List<String> activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
-            if(activeNodesSorted.size() == 1 || activeNodesSorted.size() <= REPLICATION_FACTOR - nextRep || activeNodesSorted.size() <= nextRep - REPLICATION_FACTOR){
-                return;
-            }
-            if(nextRep < 0){
-                nextRep += REPLICATION_FACTOR + 1;
-                for(String node : activeNodesSorted){
-                    if(!node.equals(nodeId)){
-                        try {
-                            this.threadPool.execute(new MessageSender(node, port, "delete " + key + " " + String.valueOf(nextRep)));
-                        } catch (UnknownHostException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }
-            }
-            else{
-                boolean send = false;
-                boolean sent = false;
-                for(String node : activeNodesSorted){
-                    if(send){
-                        try {
-                            this.threadPool.execute(new MessageSender(node, port, "delete " + key + " " + String.valueOf(nextRep)));
-                        } catch (UnknownHostException e) {
-                            throw new RuntimeException(e);
-                        }
-                        sent = true;
-                        break;
-                    }
-                    if(node.equals(nodeId)){
-                        send = true;
-                    }
-                }
-                if(!sent){
+        if (nextRep < 0){
+            nextRep += REPLICATION_FACTOR + 1;
+            for(String node : activeNodesSorted){
+                if(!node.equals(nodeId)){
                     try {
-                        this.threadPool.execute(new MessageSender(activeNodesSorted.get(0), port, "delete " + key + " " + String.valueOf(nextRep)));
+                        this.threadPool.execute(new MessageSender(node, port, "D|" + key + "|" + String.valueOf(nextRep)));
                     } catch (UnknownHostException e) {
                         throw new RuntimeException(e);
                     }
+                }
+            }
+        }
+        if(nextRep > 0){
+            boolean send = false;
+            boolean sent = false;
+            for(String node : activeNodesSorted){
+                if(send){
+                    try {
+                        this.threadPool.execute(new MessageSender(node, port, "D|" + key + "|" + String.valueOf(nextRep)));
+                    } catch (UnknownHostException e) {
+                        throw new RuntimeException(e);
+                    }
+                    sent = true;
+                    break;
+                }
+                if(node.equals(nodeId)){
+                    send = true;
+                }
+            }
+            if(!sent){
+                try {
+                    this.threadPool.execute(new MessageSender(activeNodesSorted.get(0), port, "D|" + key + "|" + String.valueOf(nextRep)));
+                } catch (UnknownHostException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }

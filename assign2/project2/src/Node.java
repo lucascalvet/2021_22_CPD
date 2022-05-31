@@ -12,8 +12,8 @@ public class Node {
     private final String hashedId;
     private final Integer storePort;
     private MembershipProtocol membershipProtocol;
-    private ClientProtocol storeOperations;
-    private final int NTHREADS = 2;
+    private ClientProtocol clientStoreOperations;
+    private final int NTHREADS = 3;
     private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private Thread runningThread = null;
 
@@ -24,13 +24,18 @@ public class Node {
         this.hashedId = Utils.encodeToHex(nodeId);
         this.storePort = storePort;
         this.membershipProtocol = new MembershipProtocol(multicastAddr.getHostName(), multicastPort);
-        this.storeOperations = new ClientProtocol(nodeId, storePort);
+        try {
+            this.clientStoreOperations = new ClientProtocol(nodeId, storePort);
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
         createDirectories();
     }
 
     public void createDirectories(){
         Utils.makeDir(hashedId);
-        Utils.writeToFile(hashedId + "\\membership_log.txt", nodeId + " 0\n", true);
+        //Utils.writeToFile(hashedId + "\\membership_log.txt", nodeId + " 0\n", true);
+        Utils.writeToFile(hashedId + "\\membership_log.txt", nodeId + " 0\n127.0.0.1 0\n127.0.0.2 0\n127.0.0.3 0\n127.0.0.6 0\n127.0.0.5 0\n", true);
         Utils.makeDir(hashedId + "\\storage");
     }
 
@@ -39,9 +44,9 @@ public class Node {
             this.runningThread = Thread.currentThread();
         }
         // create socket to membership
-        this.threadPool.execute(this.membershipProtocol);
+        //this.threadPool.execute(this.membershipProtocol);
         // create socket to store
-        this.threadPool.execute(this.storeOperations);
+        this.threadPool.execute(this.clientStoreOperations);
 
         this.threadPool.shutdown();
     }

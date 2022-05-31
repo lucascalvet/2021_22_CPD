@@ -26,9 +26,12 @@ public class PutProcessor implements Runnable{
     public PutProcessor(String nodeId, String opArg, int replicationFactor, int port, PrintWriter writer){
         this.port = port;
         this.replicationFactor = replicationFactor;
+        System.out.println("PP RepFactor: " + replicationFactor);
+        System.out.println("PP opArg: " + opArg);
+        System.out.println("PP nodeId: " + nodeId);
         if(replicationFactor == -1){
             this.value = Utils.getFileContent(opArg);
-            System.out.println("File: " + opArg);
+            System.out.println("PP File: " + opArg);
         }
         else{
             this.value = opArg;
@@ -39,8 +42,8 @@ public class PutProcessor implements Runnable{
         this.store = !Utils.fileExists(hashedId + "\\storage\\" + key + ".txt");
         this.writer = writer;
 
-        System.out.println("Value: " + value);
-        System.out.println("Key: " + key);
+        System.out.println("PP Value: " + value);
+        System.out.println("PP Key: " + key);
     }
 
     public void run(){
@@ -48,7 +51,11 @@ public class PutProcessor implements Runnable{
             this.runningThread = Thread.currentThread();
         }
         List<String> activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
+        for(int i = 0; i < activeNodesSorted.size(); i++){
+            System.out.println("PP AN" + Integer.toString(i) + "->" + activeNodesSorted.get(i));
+        }
         if(replicationFactor == -1){
+            System.out.println("DEBUG PP RepFac a -1");
             if(activeNodesSorted.get(0).equals(nodeId)){
                 if(store) Utils.writeToFile(hashedId + "\\storage\\" + key + ".txt", value, true);
                 writer.println("Pair successfully stored!");
@@ -62,7 +69,9 @@ public class PutProcessor implements Runnable{
                             nextRep -= 1;
                         }
                         try {
-                            this.threadPool.execute(new MessageSender(activeNodesSorted.get(1), port, "put " + value + " " + String.valueOf(nextRep)));
+                            System.out.println("PP 1");
+                            System.out.println("PP GET1-> " + activeNodesSorted.get(1));
+                            this.threadPool.execute(new MessageSender(activeNodesSorted.get(1), port, "P|" + value + "|" + String.valueOf(nextRep)));
                         } catch (UnknownHostException e) {
                             throw new RuntimeException(e);
                         }
@@ -72,7 +81,8 @@ public class PutProcessor implements Runnable{
             }
             else{
                 try {
-                    this.threadPool.execute(new MessageSender(activeNodesSorted.get(0), port, "put " + value + " " + String.valueOf(REPLICATION_FACTOR)));
+                    System.out.println("PP 2");
+                    this.threadPool.execute(new MessageSender(activeNodesSorted.get(0), port, "P|" + value + "|" + String.valueOf(REPLICATION_FACTOR)));
                 } catch (UnknownHostException e) {
                     throw new RuntimeException(e);
                 }
@@ -82,8 +92,8 @@ public class PutProcessor implements Runnable{
             int nextRep = replicationFactor;
             if(store){
                 Utils.writeToFile(hashedId + "\\storage\\" + key + ".txt", value, true);
-                nextRep -= 1;
             }
+            nextRep -= 1;
             if(nextRep > 0){
                 while(activeNodesSorted.size() < 4 - nextRep){
                     activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
@@ -93,7 +103,8 @@ public class PutProcessor implements Runnable{
                 for(String node : activeNodesSorted){
                     if(send){
                         try {
-                            this.threadPool.execute(new MessageSender(node, port, "put " + value + " " + String.valueOf(nextRep)));
+                            System.out.println("PP 3");
+                            this.threadPool.execute(new MessageSender(node, port, "P|" + value + "|" + String.valueOf(nextRep)));
                         } catch (UnknownHostException e) {
                             throw new RuntimeException(e);
                         }
@@ -106,7 +117,8 @@ public class PutProcessor implements Runnable{
                 }
                 if(!sent){
                     try {
-                        this.threadPool.execute(new MessageSender(activeNodesSorted.get(0), port, "put " + value + " " + String.valueOf(nextRep)));
+                        System.out.println("PP 4");
+                        this.threadPool.execute(new MessageSender(activeNodesSorted.get(0), port, "P|" + value + "|" + String.valueOf(nextRep)));
                     } catch (UnknownHostException e) {
                         throw new RuntimeException(e);
                     }
