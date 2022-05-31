@@ -23,7 +23,7 @@ public class Node {
         this.nodeId = nodeId;
         this.hashedId = Utils.encodeToHex(nodeId);
         this.storePort = storePort;
-        this.membershipProtocol = new MembershipProtocol(multicastAddr.getHostName(), multicastPort);
+        this.membershipProtocol = new MembershipProtocol(multicastAddr, multicastPort, storePort);
         this.storeOperations = new ClientProtocol(nodeId, storePort);
         createDirectories();
     }
