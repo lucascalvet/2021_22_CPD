@@ -45,14 +45,15 @@ public class GetProcessor implements Runnable{
             }
             if(activeNodesSorted.get(0).equals(nodeId)){
                 System.out.println("GP Value Not Found");
-                writer.println("Value Not Found");
+                writer.println("GP Value Not Found");
             }
             else{
                 for(String node : activeNodesSorted){
                     if(!node.equals(nodeId)){
                         try {
                             System.out.println("GP ASKING " + node);
-                            this.threadPool.execute(new MessageSender(node, port, "G|" + key));
+                            writer.println("GP Sending to the closest");
+                            this.threadPool.execute(new MessageSender(node, port, "G 1 " + key));
                         } catch (UnknownHostException e) {
                             throw new RuntimeException(e);
                         }

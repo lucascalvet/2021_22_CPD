@@ -13,6 +13,7 @@ import java.util.*;
 public class Utils {
     private final static String BASE_DIR = "src\\filesystem\\";
     private static final int HASH_BITS_SIZE = 256;
+    public static final String MSG_END = "\nEND";
     private static final int HASH_ENCODE_SIZE = 64;
     private static final BigInteger CEIL = BigInteger.ONE.shiftLeft(256);
     private static String bytesToHex(byte[] hash) {
@@ -38,7 +39,7 @@ public class Utils {
     }
 
     public static String encodeToHex(String originalString){
-        return bytesToHex(encode(originalString));
+        return bytesToHex(encode(originalString.replaceAll("\r", "")));
     }
 
     public static boolean fileExists(String relativePath){

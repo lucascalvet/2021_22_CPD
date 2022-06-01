@@ -12,7 +12,7 @@ public class Node {
     private final String hashedId;
     private final Integer storePort;
     private MembershipProtocol membershipProtocol;
-    private ClientProtocol clientStoreOperations;
+    private StorageProtocol clientStoreOperations;
     private final int NTHREADS = 3;
     private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private Thread runningThread = null;
@@ -25,7 +25,7 @@ public class Node {
         this.storePort = storePort;
         this.membershipProtocol = new MembershipProtocol(multicastAddr.getHostName(), multicastPort);
         try {
-            this.clientStoreOperations = new ClientProtocol(nodeId, storePort);
+            this.clientStoreOperations = new StorageProtocol(nodeId, storePort);
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
