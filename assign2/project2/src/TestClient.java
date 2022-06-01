@@ -3,6 +3,7 @@ import utils.Utils;
 
 import java.net.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -58,10 +59,12 @@ public class TestClient {
 
             // receive server response to issued commmand
             InputStream input = socket.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-            String time = reader.readLine();
-            System.out.println(time);
-
+            //BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+            String out = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            System.out.println(out);
+            input.close();
+            writer.close();
+            output.close();
         } catch (UnknownHostException ex) {
             System.out.println("Server not found: " + ex.getMessage());
         } catch (IOException ex) {

@@ -38,12 +38,9 @@ public class StorageProtocol implements Runnable{
                 System.out.println("Accepted New Socket");
 
                 InputStream input = socket.getInputStream();
-                System.out.println("Accepted New Socket1");
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-                System.out.println("Accepted New Socket2");
 
                 String commandLine = reader.readLine();
-                System.out.println("CMD: " + commandLine);
                 OutputStream output = socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(output, true);
                 String opArg = null;
@@ -63,18 +60,11 @@ public class StorageProtocol implements Runnable{
                     continue;
                 }
 
-                for(String com : commands){
-                    System.out.println("Command -> " + com);
-                }
-
                 op = commands[0];
 
                 //If the first character is P, G or D we know the message is from another node
                 if(commandLine.charAt(0) == 'P' || commandLine.charAt(0) == 'G' || commandLine.charAt(0) == 'D'){
                     commands = commands[1].split("\\s+", 2);
-                    for(String com : commands){
-                        System.out.println("Command2 -> " + com);
-                    }
                     if (commands.length == 0) {
                         writer.println("No operation given");
                         continue;
@@ -83,13 +73,9 @@ public class StorageProtocol implements Runnable{
                 }
                 if(commands.length >= 2) opArg = commands[1];
 
-                System.out.println("opArg -> " + opArg);
-
                 String line;
                 while (!(line = reader.readLine()).equals(Utils.MSG_END.substring(1))) {
                     opArg += "\n" + line;
-                    System.out.println("opArg2 -> " + opArg);
-                    System.out.println("Line -> " + line);
                 }
 
                 if (opArg == null){

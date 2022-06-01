@@ -26,7 +26,7 @@ public class GetProcessor implements Runnable{
         this.hashedId = Utils.encodeToHex(nodeId);
         this.writer = writer;
 
-        System.out.println("Key: " + key);
+        //System.out.println("GP Key: " + key);
     }
 
     public void run(){

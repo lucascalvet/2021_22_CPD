@@ -26,9 +26,6 @@ public class PutProcessor implements Runnable{
     public PutProcessor(String nodeId, String opArg, int replicationFactor, int port, PrintWriter writer){
         this.port = port;
         this.replicationFactor = replicationFactor;
-        System.out.println("PP RepFactor: " + replicationFactor);
-        System.out.println("PP opArg: " + opArg);
-        System.out.println("PP nodeId: " + nodeId);
         this.value = opArg;
         this.nodeId = nodeId;
         this.key = Utils.encodeToHex(value);
@@ -36,8 +33,11 @@ public class PutProcessor implements Runnable{
         this.store = !Utils.fileExists(hashedId + "\\storage\\" + key + ".txt");
         this.writer = writer;
 
-        System.out.println("PP Value: " + value);
-        System.out.println("PP Key: " + key);
+        //System.out.println("PP RepFactor: " + replicationFactor);
+        //System.out.println("PP opArg: " + opArg);
+        //System.out.println("PP nodeId: " + nodeId);
+        //System.out.println("PP Value: " + value);
+        //System.out.println("PP Key: " + key);
     }
 
     public void run(){
@@ -49,7 +49,6 @@ public class PutProcessor implements Runnable{
             System.out.println("PP AN" + Integer.toString(i) + "->" + activeNodesSorted.get(i));
         }
         if(replicationFactor == -1){
-            System.out.println("DEBUG PP RepFac a -1");
             if(activeNodesSorted.get(0).equals(nodeId)){
                 if(store) Utils.writeToFile(hashedId + "\\storage\\" + key + ".txt", value, true);
                 while(activeNodesSorted.size() < 2){
@@ -62,7 +61,7 @@ public class PutProcessor implements Runnable{
                             nextRep -= 1;
                         }
                         try {
-                            System.out.println("PP GET1-> " + activeNodesSorted.get(1));
+                            System.out.println("PP 1");
                             writer.println("PP I was the closest. Sending to the next one");
                             this.threadPool.execute(new MessageSender(activeNodesSorted.get(1), port, "P " + String.valueOf(nextRep) + " " + value));
                         } catch (UnknownHostException e) {

@@ -30,8 +30,8 @@ public class DeleteProcessor implements Runnable{
         this.hashedId = Utils.encodeToHex(nodeId);
         this.writer = writer;
 
-        System.out.println("DP Key: " + key);
-        System.out.println("DP Replication Factor: " + replicationFactor);
+        //System.out.println("DP Key: " + key);
+        //System.out.println("DP Replication Factor: " + replicationFactor);
     }
 
     public void run(){
