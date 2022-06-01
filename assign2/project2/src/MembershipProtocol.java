@@ -14,7 +14,7 @@
 //                                          -> retransmit the "J" to a total of 3 times including the first
 //                                  -> if it receives crete membership logs and members list
 
-// node receives "leave" from client -> multicast "L" to other nodes
+// node receives "leave" from client -> multicast "L" to other nodes TODO
 
 
 /** MESSAGES FROM OTHER NODES **/
@@ -43,11 +43,6 @@
 // the membership log should be keep with only one log for node -> the node with the largest counter
 //                                                              -> do a cleaning function
 
-import processors.node.JMessageProcessor;
-import processors.node.LMessageProcessor;
-import processors.node.MMessageProcessor;
-
-import java.io.*;
 import java.net.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -77,7 +72,7 @@ public class MembershipProtocol implements Runnable {
 
         // socket to receive commands join and leave from client
         try {
-            this.threadPool.execute(new MembershipClient(inetAddress, multicastAddress, multicastPort, storePort, counter));
+            this.threadPool.execute(new MembershipClient(inetAddress, multicastAddress, multicastPort, storePort, counter, nodeId));
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }

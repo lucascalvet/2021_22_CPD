@@ -9,12 +9,14 @@ public class JoinProcessor implements Runnable {
     private InetAddress multicastAddress;
     private Integer multicastPort;
     private PrintWriter writer;
+    private String nodeId;
 
-    public JoinProcessor(PrintWriter writer, int counter, InetAddress multicastAddress, Integer multicastPort) {
+    public JoinProcessor(PrintWriter writer, int counter, InetAddress multicastAddress, Integer multicastPort, String nodeId) {
         this.writer = writer;
         this.counter = counter;
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
+        this.nodeId = nodeId;
     }
 
     @Override
@@ -39,9 +41,9 @@ public class JoinProcessor implements Runnable {
         }
 
         // multicast >> J << message
-        String jMessage = null;
+        String jMessage =  nodeId + " " + counter + " " + initializationTcpPort;
+
         DatagramSocket socket;
-        InetAddress group;
         byte[] buf;
 
         try {

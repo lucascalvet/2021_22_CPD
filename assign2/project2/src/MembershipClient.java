@@ -19,13 +19,15 @@ public class MembershipClient implements Runnable {
     private final String invalidMessage = "InvalidMessage";
     private InetAddress inetAddress;
     private int counter = 0;
+    private String nodeId;
 
-    MembershipClient(InetAddress inetAddress, InetAddress multicastAddress, Integer multicastPort, Integer storePort, Integer counter) throws UnknownHostException {
+    MembershipClient(InetAddress inetAddress, InetAddress multicastAddress, Integer multicastPort, Integer storePort, Integer counter, String nodeId) throws UnknownHostException {
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
         this.storePort = storePort;
         this.counter = counter;
         this.inetAddress = inetAddress;
+        this.nodeId = nodeId;
     }
 
     public void run() {
@@ -59,10 +61,10 @@ public class MembershipClient implements Runnable {
 
                 switch (operation) {
                     case "join":
-                        this.threadPool.execute(new JoinProcessor(writer, counter, multicastAddress, multicastPort));
+                        this.threadPool.execute(new JoinProcessor(writer, counter, multicastAddress, multicastPort, nodeId));
                         break;
                     case "leave":
-                        this.threadPool.execute(new LeaveProcessor(writer, counter, multicastAddress, multicastPort));
+                        this.threadPool.execute(new LeaveProcessor(writer, counter, multicastAddress, multicastPort, nodeId));
                         break;
                 }
             }

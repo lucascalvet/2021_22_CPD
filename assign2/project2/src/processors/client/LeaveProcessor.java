@@ -11,27 +11,27 @@ public class LeaveProcessor implements Runnable {
     private InetAddress multicastAddress;
     private Integer multicastPort;
     private PrintWriter writer;
-    public LeaveProcessor(PrintWriter writer, int counter, InetAddress multicastAddress, Integer multicastPort) {
+    private String nodeId;
+    public LeaveProcessor(PrintWriter writer, int counter, InetAddress multicastAddress, Integer multicastPort, String nodeId) {
         this.writer = writer;
         this.counter = counter;
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
+        this.nodeId = nodeId;
     }
 
     @Override
     public void run() {
         // creating >> L << message
-        //String lMsg = nodeId + counter;
+        String lMessage = nodeId + counter;
 
         // multicasting message
-        String jMessage = null;
         DatagramSocket socket;
-        InetAddress group;
         byte[] buf;
 
         try {
             socket = new DatagramSocket();
-            buf = jMessage.getBytes();
+            buf = lMessage.getBytes();
 
             DatagramPacket packet = null;
             packet = new DatagramPacket(buf, buf.length, InetAddress.getByName(multicastAddress.getHostName()), multicastPort);
