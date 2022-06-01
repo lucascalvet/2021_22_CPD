@@ -43,13 +43,9 @@
 // the membership log should be keep with only one log for node -> the node with the largest counter
 //                                                              -> do a cleaning function
 
-import processors.client.JoinProcessor;
-import processors.client.LeaveProcessor;
 import processors.node.JMessageProcessor;
 import processors.node.LMessageProcessor;
 import processors.node.MMessageProcessor;
-import utils.AccessPoint;
-import utils.Utils;
 
 import java.io.*;
 import java.net.*;
@@ -64,12 +60,14 @@ public class MembershipProtocol implements Runnable {
     private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private Thread runningThread = null;
     private final String invalidMessage = "InvalidMessage";
+    private InetAddress inetAddress;
     private int counter = 0;
 
-    MembershipProtocol(InetAddress multicastAddress, Integer multicastPort, Integer storePort){
+    MembershipProtocol(String nodeId, InetAddress multicastAddress, Integer multicastPort, Integer storePort) throws UnknownHostException {
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
         this.storePort = storePort;
+        this.inetAddress = InetAddress.getByName(nodeId);
     }
 
     public void run(){
@@ -78,103 +76,13 @@ public class MembershipProtocol implements Runnable {
         }
 
         // socket to receive commands join and leave from client
-        try (ServerSocket serverSocket = new ServerSocket(storePort)) {
-            Socket socket = serverSocket.accept();
-            System.out.println("New Socket for commands join and leave from client");
-
-            // read one line of input (because client commands are only one line)
-            InputStream input = socket.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-            String commandLine = reader.readLine();
-            String[] message = commandLine.split("\\s+");
-
-            // create output stream to answer client with command status
-            OutputStream output = socket.getOutputStream();
-            PrintWriter writer = new PrintWriter(output, true);
-
-            // parse command inputted from client
-            if(message.length != 1){
-                writer.println(invalidMessage);
-                throw new IllegalArgumentException("Wrong number of arguments given");
-            }
-            String operation = message[0];
-
-            switch(operation) {
-                case "join":
-                    this.threadPool.execute(new JoinProcessor(writer, counter, multicastAddress, multicastPort));
-                    break;
-                case "leave":
-                    this.threadPool.execute(new LeaveProcessor(writer, counter, multicastAddress, multicastPort));
-                    break;
-            }
-        } catch (IOException e) {
+        try {
+            this.threadPool.execute(new MembershipClient(inetAddress, multicastAddress, multicastPort, storePort, counter));
+        } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
 
         // multicast socket to receive inter node multicasted messages
-        String multicastMessage = "test";
-        MulticastSocket socket = null;
-
-        try {
-            socket = new MulticastSocket(4446);
-            byte[] buf = new byte[256];
-
-            InetAddress group = InetAddress.getByName("230.0.0.0");
-            socket.joinGroup(group);
-
-            while (true) {
-                DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                socket.receive(packet);
-                String received = new String(
-                        packet.getData(), 0, packet.getLength());
-                if ("end".equals(received)) {
-                    break;
-                }
-            }
-
-            // checks for valid arguments
-            if(msgId.equals("J") || msgId.equals("L") || msgId.equals("M")){
-                writer.println(invalidMessage);
-            }
-
-            switch (msgId){
-                // receives a J message
-                case "J":
-                    if(message.length != 4){
-                        writer.println(invalidMessage);
-                        return;
-                    }
-                    if(counter != 0) counter++;
-
-                    this.threadPool.execute(new JMessageProcessor(nodeId, opArg, port, writer, message, counter));
-                    break;
-                // receives a L message
-                case "L":
-                    if(message.length != 3){
-                        writer.println(invalidMessage);
-                        return;
-                    }
-                    counter--;
-
-                    this.threadPool.execute(new LMessageProcessor(nodeId, opArg, port, writer, message, counter));
-                    break;
-                // receives a M message
-                case "M":
-                    this.threadPool.execute(new MMessageProcessor(nodeId, opArg, port, writer, message, counter, reader));
-                    break;
-                // invalid message
-                case invalidMessage:
-                    throw new RuntimeException(invalidMessage);
-                    // message not recognized
-                default:
-                    writer.println(invalidMessage);
-            }
-
-            socket.leaveGroup(group);
-            socket.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
 
 
         this.threadPool.shutdown();

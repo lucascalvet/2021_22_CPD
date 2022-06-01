@@ -17,13 +17,13 @@ public class Node {
     private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private Thread runningThread = null;
 
-    public Node(InetAddress multicastAddr, Integer multicastPort, String nodeId, Integer storePort) {
+    public Node(InetAddress multicastAddr, Integer multicastPort, String nodeId, Integer storePort) throws UnknownHostException {
         this.multicastAddr = multicastAddr;
         this.multicastPort = multicastPort;
         this.nodeId = nodeId;
         this.hashedId = Utils.encodeToHex(nodeId);
         this.storePort = storePort;
-        this.membershipProtocol = new MembershipProtocol(multicastAddr, multicastPort, storePort);
+        this.membershipProtocol = new MembershipProtocol(nodeId, multicastAddr, multicastPort, storePort);
         this.storeOperations = new ClientProtocol(nodeId, storePort);
         createDirectories();
     }
