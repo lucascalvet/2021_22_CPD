@@ -1,40 +1,44 @@
 package processors.client;
 
-import utils.MessageMulticast;
-import utils.Utils;
-
+import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.UnknownHostException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 public class LeaveProcessor implements Runnable {
-    private final int port;
-    private final String key;
-    private final String nodeId;
-    private final String hashedId;
-    private final PrintWriter writer;
-    private final int NTHREADS = 2;
-    private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private int counter;
-    public LeaveProcessor(String nodeId, String key, int port, PrintWriter writer, int counter){
-        this.port = port;
-        this.nodeId = nodeId;
-        this.key = key;
-        this.hashedId = Utils.encodeToHex(nodeId);
+    private InetAddress multicastAddress;
+    private Integer multicastPort;
+    private PrintWriter writer;
+    private String nodeId;
+    public LeaveProcessor(PrintWriter writer, int counter, InetAddress multicastAddress, Integer multicastPort, String nodeId) {
         this.writer = writer;
         this.counter = counter;
+        this.multicastAddress = multicastAddress;
+        this.multicastPort = multicastPort;
+        this.nodeId = nodeId;
     }
 
     @Override
     public void run() {
         // creating >> L << message
-        String lMsg = nodeId + counter;
+        String lMessage = nodeId + counter;
 
         // multicasting message
+        DatagramSocket socket;
+        byte[] buf;
+
         try {
-            this.threadPool.execute(new MessageMulticast(nodeId, port, ""));
-        } catch (UnknownHostException e) {
+            socket = new DatagramSocket();
+            buf = lMessage.getBytes();
+
+            DatagramPacket packet = null;
+            packet = new DatagramPacket(buf, buf.length, InetAddress.getByName(multicastAddress.getHostName()), multicastPort);
+
+            socket.send(packet);
+            socket.close();
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

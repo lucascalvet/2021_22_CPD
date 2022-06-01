@@ -14,7 +14,7 @@
 //                                          -> retransmit the "J" to a total of 3 times including the first
 //                                  -> if it receives crete membership logs and members list
 
-// node receives "leave" from client -> multicast "L" to other nodes
+// node receives "leave" from client -> multicast "L" to other nodes TODO
 
 
 /** MESSAGES FROM OTHER NODES **/
@@ -43,107 +43,44 @@
 // the membership log should be keep with only one log for node -> the node with the largest counter
 //                                                              -> do a cleaning function
 
-import processors.client.JoinProcessor;
-import processors.client.LeaveProcessor;
-import processors.node.JMessageProcessor;
-import processors.node.LMessageProcessor;
-import processors.node.MMessageProcessor;
-import utils.Utils;
-
-import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MembershipProtocol implements Runnable {
-    private final Integer port;
-    private final String nodeId;
-    private final String hashedId;
+    private final Integer storePort;
+    private InetAddress multicastAddress;
+    private Integer multicastPort;
     private final int NTHREADS = 10;
     private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private Thread runningThread = null;
     private final String invalidMessage = "InvalidMessage";
+    private InetAddress inetAddress;
     private int counter = 0;
+    private String nodeId;
 
-    MembershipProtocol(String nodeId, Integer port){
-        this.port = port;
+    MembershipProtocol(String nodeId, InetAddress multicastAddress, Integer multicastPort, Integer storePort) throws UnknownHostException {
+        this.multicastAddress = multicastAddress;
+        this.multicastPort = multicastPort;
+        this.storePort = storePort;
+        this.inetAddress = InetAddress.getByName(nodeId);
         this.nodeId = nodeId;
-        this.hashedId = Utils.encodeToHex(nodeId);
     }
 
     public void run(){
         synchronized (this) {
             this.runningThread = Thread.currentThread();
         }
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            Socket socket = serverSocket.accept();
-            System.out.println("Accepted New Socket");
 
-            InputStream input = socket.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-
-            String commandLine = reader.readLine();
-
-            String[] message = commandLine.split("\\s+");
-
-            OutputStream output = socket.getOutputStream();
-            PrintWriter writer = new PrintWriter(output, true);
-
-            String msgId = message[0];
-            String opArg = null;
-
-            switch(msgId) {
-                case "join":
-                    this.threadPool.execute(new JoinProcessor(nodeId, opArg, port, writer, counter));
-                    break;
-                case "leave":
-                    this.threadPool.execute(new LeaveProcessor(nodeId, opArg, port, writer, counter));
-                    break;
-            }
-
-            // TODO create new socket connection for membership inter node messages
-
-            // checks for valid arguments
-            if(msgId.equals("J") || msgId.equals("L") || msgId.equals("M")){
-                writer.println(invalidMessage);
-            }
-
-            switch (msgId){
-                // receives a J message
-                case "J":
-                    if(message.length != 4){
-                        writer.println(invalidMessage);
-                        return;
-                    }
-                    if(counter != 0) counter++;
-
-                    this.threadPool.execute(new JMessageProcessor(nodeId, opArg, port, writer, message, counter));
-                    break;
-                // receives a L message
-                case "L":
-                    if(message.length != 3){
-                        writer.println(invalidMessage);
-                        return;
-                    }
-                    counter--;
-
-                    this.threadPool.execute(new LMessageProcessor(nodeId, opArg, port, writer, message, counter));
-                    break;
-                // receives a M message
-                case "M":
-                    this.threadPool.execute(new MMessageProcessor(nodeId, opArg, port, writer, message, counter, reader));
-                    break;
-                // invalid message
-                case invalidMessage:
-                    throw new RuntimeException(invalidMessage);
-                // message not recognized
-                default:
-                    writer.println(invalidMessage);
-            }
-        } catch (IOException e) {
+        // socket to receive commands join and leave from client
+        try {
+            this.threadPool.execute(new MembershipClient(inetAddress, multicastAddress, multicastPort, storePort, counter, nodeId));
+        } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
+
+        // multicast socket to receive inter node multicasted messages
+
 
         this.threadPool.shutdown();
     }
