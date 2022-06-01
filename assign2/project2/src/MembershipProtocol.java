@@ -57,12 +57,14 @@ public class MembershipProtocol implements Runnable {
     private final String invalidMessage = "InvalidMessage";
     private InetAddress inetAddress;
     private int counter = 0;
+    private String nodeId;
 
     MembershipProtocol(String nodeId, InetAddress multicastAddress, Integer multicastPort, Integer storePort) throws UnknownHostException {
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
         this.storePort = storePort;
         this.inetAddress = InetAddress.getByName(nodeId);
+        this.nodeId = nodeId;
     }
 
     public void run(){
