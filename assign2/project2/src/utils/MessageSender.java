@@ -1,9 +1,6 @@
 package utils;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -30,7 +27,9 @@ public class MessageSender implements Runnable{
             PrintWriter writer = new PrintWriter(output, true);
             writer.println(message);
             InputStream input = socket.getInputStream();
-            this.answer = new String(input.readAllBytes(), StandardCharsets.UTF_8);;
+            //this.answer = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+            this.answer = reader.readLine();
             System.out.println("ANS: " + answer);
             input.close();
             writer.close();

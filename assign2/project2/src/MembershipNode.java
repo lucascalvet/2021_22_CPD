@@ -31,6 +31,7 @@ public class MembershipNode implements Runnable {
         synchronized (this) {
             this.runningThread = Thread.currentThread();
         }
+        /*
 
         String multicastMessage = "test";
         MulticastSocket socket = null;
@@ -110,7 +111,7 @@ public class MembershipNode implements Runnable {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
+        */
         this.threadPool.shutdown();
     }
 }

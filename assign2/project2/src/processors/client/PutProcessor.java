@@ -5,6 +5,7 @@ import utils.Utils;
 
 import java.io.PrintWriter;
 import java.net.UnknownHostException;
+import java.nio.file.FileAlreadyExistsException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,6 +18,7 @@ public class PutProcessor implements Runnable{
     private final String nodeId;
     private final String hashedId;
     private final PrintWriter writer;
+    private final boolean exists;
     private final boolean store;
     private final int REPLICATION_FACTOR = 3;
     private final int NTHREADS = 2;
@@ -30,7 +32,8 @@ public class PutProcessor implements Runnable{
         this.nodeId = nodeId;
         this.key = Utils.encodeToHex(value);
         this.hashedId = Utils.encodeToHex(nodeId);
-        this.store = !Utils.fileExists(hashedId + "\\storage\\" + key + ".txt");
+        this.exists = Utils.fileExists(hashedId + "\\storage\\" + key + ".txt");
+        this.store = !exists || Utils.getFileContent(hashedId + "\\storage\\" + key + ".txt").equals(Utils.MSG_TOMBSTONE);
         this.writer = writer;
 
         //System.out.println("PP RepFactor: " + replicationFactor);
@@ -50,7 +53,10 @@ public class PutProcessor implements Runnable{
         }
         if(replicationFactor == -1){
             if(activeNodesSorted.get(0).equals(nodeId)){
-                if(store) Utils.writeToFile(hashedId + "\\storage\\" + key + ".txt", value, true);
+                if(store){
+                    System.out.println("PP Stored");
+                    Utils.writeToFile(hashedId + "\\storage\\" + key + ".txt", value, !exists);
+                }
                 while(activeNodesSorted.size() < 2){
                     activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
                 }
@@ -84,7 +90,8 @@ public class PutProcessor implements Runnable{
         else if(replicationFactor > 0){
             int nextRep = replicationFactor;
             if(store){
-                Utils.writeToFile(hashedId + "\\storage\\" + key + ".txt", value, true);
+                System.out.println("PP Stored");
+                Utils.writeToFile(hashedId + "\\storage\\" + key + ".txt", value, !exists);
             }
             nextRep -= 1;
             if(nextRep > 0){

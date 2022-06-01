@@ -8,7 +8,7 @@ public class JMessageProcessor implements Runnable{
     private final int port;
     private final String nodeId;
     private final String hashedId;
-    private final PrintWriter writer;
+    //private final PrintWriter writer;
     private final int NTHREADS = 2;
     private int counter;
     private String[] message;
@@ -16,7 +16,7 @@ public class JMessageProcessor implements Runnable{
         this.port = port;
         this.nodeId = nodeId;
         this.hashedId = Utils.encodeToHex(nodeId);
-        this.writer = writer;
+        //this.writer = writer;
         this.message = message;
         this.counter = counter;
     }

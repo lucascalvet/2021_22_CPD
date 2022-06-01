@@ -56,12 +56,12 @@ public class TestClient {
                 System.out.println("Hash: " + Utils.encodeToHex(value));
             }
             writer.println(getCommand());
-
             // receive server response to issued commmand
             InputStream input = socket.getInputStream();
-            //BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-            String out = new String(input.readAllBytes(), StandardCharsets.UTF_8);
-            System.out.println(out);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+            String out = reader.readLine();
+            //String out = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            System.out.println("OUT: " + out);
             input.close();
             writer.close();
             output.close();

@@ -31,6 +31,6 @@ public class MMessageProcessor implements Runnable{
         // TODO
 
         // update the membership logs
-        Utils.updateLogs();
+        //Utils.updateLogs();
     }
 }

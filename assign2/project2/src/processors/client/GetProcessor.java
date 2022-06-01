@@ -33,7 +33,7 @@ public class GetProcessor implements Runnable{
         synchronized (this) {
             this.runningThread = Thread.currentThread();
         }
-        if(Utils.fileExists(hashedId + "\\storage\\" + key + ".txt")){
+        if(Utils.fileExists(hashedId + "\\storage\\" + key + ".txt") && !Utils.getFileContent(hashedId + "\\storage\\" + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
             String value = Utils.getFileContent(hashedId + "\\storage\\" + key + ".txt");
             System.out.println("GP Value Fetched: " + value);
             writer.println(value);
