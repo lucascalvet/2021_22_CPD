@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 
 public class MessageSender implements Runnable{
     private static AccessPoint ap;
@@ -14,7 +15,7 @@ public class MessageSender implements Runnable{
 
     public MessageSender(String ip, Integer port, String message) throws UnknownHostException {
         this.ap = new AccessPoint(ip + ":" + port.toString());
-        this.message = message;
+        this.message = message + Utils.MSG_END;
         this.answer = "No answer yet!";
     }
 
@@ -29,7 +30,12 @@ public class MessageSender implements Runnable{
             PrintWriter writer = new PrintWriter(output, true);
             writer.println(message);
             InputStream input = socket.getInputStream();
-            this.answer = input.toString();
+            this.answer = new String(input.readAllBytes(), StandardCharsets.UTF_8);;
+            System.out.println("ANS: " + answer);
+            input.close();
+            writer.close();
+            output.close();
+            socket.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

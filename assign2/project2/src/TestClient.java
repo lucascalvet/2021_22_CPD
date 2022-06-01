@@ -3,6 +3,7 @@ import utils.Utils;
 
 import java.net.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
@@ -47,20 +48,23 @@ public class TestClient {
             // send command to server
             OutputStream output = socket.getOutputStream();
             PrintWriter writer = new PrintWriter(output, true);
-            writer.println(getCommand());
             if(op.equals("put")){
                 System.out.println("File: " + opnd);
                 String value = Utils.getFileContent(opnd);
+                opnd = value;
                 System.out.println("Value: " + value);
                 System.out.println("Hash: " + Utils.encodeToHex(value));
             }
+            writer.println(getCommand());
 
             // receive server response to issued commmand
             InputStream input = socket.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-            String time = reader.readLine();
-            System.out.println(time);
-
+            //BufferedReader reader = new BufferedReader(new InputStreamReader(input));
+            String out = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            System.out.println(out);
+            input.close();
+            writer.close();
+            output.close();
         } catch (UnknownHostException ex) {
             System.out.println("Server not found: " + ex.getMessage());
         } catch (IOException ex) {
@@ -70,7 +74,7 @@ public class TestClient {
 
     private static String getCommand(){
         if(nArgs == 2) return op;
-        else if(nArgs == 3) return op + " " + opnd;
+        else if(nArgs == 3) return op + " " + opnd + Utils.MSG_END;
         return null;
     }
 }
