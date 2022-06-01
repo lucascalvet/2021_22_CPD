@@ -161,6 +161,23 @@ public class Utils {
         return true;
     }
 
+    public static String getNLogLines(String hashedId, int n) {
+        String line;
+        StringBuilder logs = new StringBuilder();
+        File membershipLog = new File(BASE_DIR + hashedId + "\\membership_log.txt");
+        try {
+            FileReader fr = new FileReader(membershipLog);
+            BufferedReader br = new BufferedReader(fr);
+            while ((line = br.readLine()) != null && n > 0) {
+                logs.append(line).append("\n");
+                n--;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return logs.toString();
+    }
+
     public static Map<String, Integer> readLogs(String hashedId) {
         Map<String, Integer> nodes = new HashMap<String, Integer>();
         String line;
@@ -174,8 +191,6 @@ public class Utils {
                     nodes.put(splited[0], Integer.valueOf(splited[1]));
                 }
             }
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -192,7 +207,6 @@ public class Utils {
         }
         return activeNodes;
     }
-
 
     public static int getHashEncodeSize() {
         return HASH_ENCODE_SIZE;

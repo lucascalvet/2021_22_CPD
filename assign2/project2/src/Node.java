@@ -1,31 +1,52 @@
 import utils.Utils;
 
 import java.net.*;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class Node {
+import static utils.Utils.readLogs;
 
+public class Node {
     private final InetAddress multicastAddr;
     private final Integer multicastPort;
     private final String nodeId;
     private final String hashedId;
+    private final InetAddress nodeAddress;
     private final Integer storePort;
-    private MembershipProtocol membershipProtocol;
-    private StorageProtocol clientStoreOperations;
-    private final int NTHREADS = 3;
-    private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
-    private Thread runningThread = null;
 
     public Node(InetAddress multicastAddr, Integer multicastPort, String nodeId, Integer storePort) throws UnknownHostException {
         this.multicastAddr = multicastAddr;
         this.multicastPort = multicastPort;
         this.nodeId = nodeId;
         this.hashedId = Utils.encodeToHex(nodeId);
+        this.nodeAddress = InetAddress.getByName(nodeId);
         this.storePort = storePort;
-        this.membershipProtocol = new MembershipProtocol(nodeId, multicastAddr, multicastPort, storePort);
-        this.clientStoreOperations = new StorageProtocol(nodeId, storePort);
         createDirectories();
+    }
+
+    public InetAddress getMulticastAddr() {
+        return multicastAddr;
+    }
+
+    public Integer getMulticastPort() {
+        return multicastPort;
+    }
+
+    public String getNodeId() {
+        return nodeId;
+    }
+
+    public String getHashedId() {
+        return hashedId;
+    }
+
+    public InetAddress getAddress() throws UnknownHostException {
+        return nodeAddress;
+    }
+
+    public Integer getStorePort() {
+        return storePort;
     }
 
     public void createDirectories(){
@@ -35,15 +56,19 @@ public class Node {
         Utils.makeDir(hashedId + "\\storage");
     }
 
-    public void run() {
-        synchronized (this) {
-            this.runningThread = Thread.currentThread();
-        }
-        // create socket to membership
-        //this.threadPool.execute(this.membershipProtocol);
-        // create socket to store
-        this.threadPool.execute(this.clientStoreOperations);
+    public synchronized void addLog(String nodeId, int counter) {
+        Utils.updateLogs(nodeId, counter, this.hashedId);
+    }
 
-        this.threadPool.shutdown();
+    public synchronized String get32Logs() {
+        return Utils.getNLogLines(this.hashedId, 32);
+    }
+
+    public void run() throws UnknownHostException {
+        Thread multicastThread = new Thread(new MembershipNode(this), "Multicast Thread");
+        Thread storeThread = new Thread(new StorageProtocol(nodeId, storePort), "Store Thread");
+
+        multicastThread.start();
+        storeThread.start();
     }
 }

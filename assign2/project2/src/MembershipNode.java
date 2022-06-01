@@ -1,6 +1,7 @@
 
 import processors.node.JMessageProcessor;
 import processors.node.LMessageProcessor;
+import processors.node.MMessageProcessor;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -11,32 +12,24 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MembershipNode implements Runnable {
-    private final Integer storePort;
-    private InetAddress multicastAddress;
-    private Integer multicastPort;
-    private final int NTHREADS = 10;
-    private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
-    private Thread runningThread = null;
-    private final String invalidMessage = "InvalidMessage";
+    private final Node node;
+    private final ExecutorService threadPool;
     private InetAddress inetAddress;
 
-    MembershipNode(String nodeId, InetAddress multicastAddress, Integer multicastPort, Integer storePort) throws UnknownHostException {
-        this.multicastAddress = multicastAddress;
-        this.multicastPort = multicastPort;
-        this.storePort = storePort;
-        this.inetAddress = InetAddress.getByName(nodeId);
+    MembershipNode(Node node) throws UnknownHostException {
+        this.node = node;
+        int threadCount = Runtime.getRuntime().availableProcessors();
+        threadPool = Executors.newFixedThreadPool(threadCount);
+        System.out.println(Thread.currentThread().getName() + ": Created thread pool with " + threadCount + "threads");
     }
 
     public void run() {
-        synchronized (this) {
-            this.runningThread = Thread.currentThread();
-        }
 
         String multicastMessage = "test";
         MulticastSocket socket = null;
 
         try {
-            socket = new MulticastSocket(multicastPort);
+            socket = new MulticastSocket(node.getMulticastPort());
             byte[] buf = new byte[1024];
 
             InetAddress group = InetAddress.getByName("230.0.0.0");
@@ -54,6 +47,7 @@ public class MembershipNode implements Runnable {
 
                 String[] message = received.split("\\s+");
                 String nodeId;
+                int counter, port;
 
                 switch (msgId) {
                     // receives a J message
@@ -64,7 +58,6 @@ public class MembershipNode implements Runnable {
 
                         nodeId = message[1];
 
-                        int counter, port;
                         try {
                             counter = Integer.parseInt(message[2]);
                             port = Integer.parseInt(message[3]);
@@ -73,7 +66,7 @@ public class MembershipNode implements Runnable {
                             continue;
                         }
 
-                        this.threadPool.execute(new JMessageProcessor(nodeId, port, counter));
+                        this.threadPool.execute(new JMessageProcessor(this.node, nodeId, port, counter));
                         break;
                     // receives a L message
                     case 'L':
@@ -83,13 +76,13 @@ public class MembershipNode implements Runnable {
 
                         nodeId = message[1];
                         try {
-                            int counter = Integer.parseInt(message[2]);
+                            counter = Integer.parseInt(message[2]);
                         }
                         catch (NumberFormatException e) {
                             continue;
                         }
 
-                        this.threadPool.execute(new LMessageProcessor(nodeId, opArg, port, writer, message, counter));
+                        this.threadPool.execute(new LMessageProcessor(nodeId, counter));
                         break;
                     // receives a M message
                     case 'M':
