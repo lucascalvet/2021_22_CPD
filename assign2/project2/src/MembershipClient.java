@@ -61,10 +61,10 @@ public class MembershipClient implements Runnable {
 
                 switch (operation) {
                     case "join":
-                        this.threadPool.execute(new JoinProcessor(writer, counter, multicastAddress, multicastPort, nodeId));
+                        this.threadPool.execute(new JoinProcessor(writer, multicastAddress, multicastPort, nodeId));
                         break;
                     case "leave":
-                        this.threadPool.execute(new LeaveProcessor(writer, counter, multicastAddress, multicastPort, nodeId));
+                        this.threadPool.execute(new LeaveProcessor(writer, multicastAddress, multicastPort, nodeId));
                         break;
                 }
             }

@@ -5,15 +5,13 @@ import java.net.*;
 
 public class JoinProcessor implements Runnable {
     private int initializationTcpPort = 590;
-    private int counter;
     private InetAddress multicastAddress;
     private Integer multicastPort;
     private PrintWriter writer;
     private String nodeId;
 
-    public JoinProcessor(PrintWriter writer, int counter, InetAddress multicastAddress, Integer multicastPort, String nodeId) {
+    public JoinProcessor(PrintWriter writer, InetAddress multicastAddress, Integer multicastPort, String nodeId) {
         this.writer = writer;
-        this.counter = counter;
         this.multicastAddress = multicastAddress;
         this.multicastPort = multicastPort;
         this.nodeId = nodeId;

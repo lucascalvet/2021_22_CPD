@@ -21,13 +21,12 @@
 /** MESSAGES FROM OTHER NODES **/
 
 // node receives "J" from node -> update membership log with <node id> and <membership counter> received
-//                             -> if node is not in members list or if there is and there are changes in the message:
+//                             -> if node is not in members list or if there are changes in the message:
 //                                  -> update members list adding node id
 //                                  -> !!some nodes!! do the initialization process:
 //                                                                         -> waits for a random time length
 //                                                                         -> send "M": members list and 32 most recent logs (Through TCP)
-//                             -> else if node is not in members list:
-//                                  -> ignore "J" from that node
+
 // node receives "L" from node -> update membership log with <node id> and <membership counter> received
 //                             -> update members list removing node id
 
