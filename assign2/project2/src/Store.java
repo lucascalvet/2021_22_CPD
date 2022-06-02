@@ -1,3 +1,5 @@
+import protocol.Node;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -11,7 +13,7 @@ public class Store {
         String nodeId = args[2];
         Integer storePort = Integer.valueOf(args[3]);
 
-        System.out.println("NODEID AND PORT: " + nodeId + " " + storePort);
+        System.out.println("NODE ID AND PORT: " + nodeId + " " + storePort);
         Node node = new Node(multicastAddr, multicastPort, nodeId, storePort);
         node.run();
     }

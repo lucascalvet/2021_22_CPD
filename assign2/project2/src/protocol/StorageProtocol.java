@@ -1,3 +1,5 @@
+package protocol;
+
 import processors.client.*;
 import utils.Utils;
 
@@ -100,7 +102,7 @@ public class StorageProtocol implements Runnable{
                             writer.println("Invalid Op");
                     }
                 }
-                writer.println(new Date().toString());
+                writer.println(new Date());
             }
 
         } catch (IOException ex) {
