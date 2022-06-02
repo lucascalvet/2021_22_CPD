@@ -3,7 +3,9 @@ package processors.client;
 import utils.MessageSender;
 import utils.Utils;
 
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -11,32 +13,31 @@ import java.util.concurrent.Executors;
 
 public class GetProcessor implements Runnable{
     private final int port;
+    private MessageSender messenger = null;
     private final String key;
     private final String nodeId;
     private final String hashedId;
+    private final Socket socket;
     private final PrintWriter writer;
-    private final int NTHREADS = 2;
-    private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
-    private Thread runningThread = null;
+    private String message = "";
 
-    public GetProcessor(String nodeId, String key, int port, PrintWriter writer){
+    public GetProcessor(String nodeId, String key, int port, Socket socket) throws IOException {
         this.port = port;
         this.nodeId = nodeId;
         this.key = key;
         this.hashedId = Utils.encodeToHex(nodeId);
-        this.writer = writer;
+        this.socket = socket;
+        this.writer = new PrintWriter(socket.getOutputStream(), true);
 
         //System.out.println("GP Key: " + key);
     }
 
     public void run(){
-        synchronized (this) {
-            this.runningThread = Thread.currentThread();
-        }
         if(Utils.fileExists(hashedId + "\\storage\\" + key + ".txt") && !Utils.getFileContent(hashedId + "\\storage\\" + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
             String value = Utils.getFileContent(hashedId + "\\storage\\" + key + ".txt");
-            System.out.println("GP Value Fetched: " + value);
-            writer.println(value);
+            message = nodeId + " GET-> Value Fetched: " + value;
+            //System.out.println(message);
+            //writer.println(message);
         }
         else{
             List<String> activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
@@ -44,16 +45,18 @@ public class GetProcessor implements Runnable{
                 System.out.println("GP AN" + Integer.toString(i) + "->" + activeNodesSorted.get(i));
             }
             if(activeNodesSorted.get(0).equals(nodeId)){
-                System.out.println("GP Value Not Found");
-                writer.println("GP Value Not Found");
+                message = nodeId + " GET-> Value not Found!";
+                //System.out.println(message);
+                //writer.println(message);
             }
             else{
                 for(String node : activeNodesSorted){
                     if(!node.equals(nodeId)){
                         try {
-                            System.out.println("GP ASKING " + node);
-                            writer.println("GP Sending to the closest");
-                            this.threadPool.execute(new MessageSender(node, port, "G 1 " + key));
+                            message = nodeId + " GET-> Sending to the closest node: " + node;
+                            //System.out.println(message);
+                            writer.println(message);
+                            messenger = new MessageSender(node, port, "G 1 " + key);
                         } catch (UnknownHostException e) {
                             throw new RuntimeException(e);
                         }
@@ -62,6 +65,12 @@ public class GetProcessor implements Runnable{
                 }
             }
         }
-        this.threadPool.shutdown();
+        if (messenger != null){
+            messenger.run();
+            writer.println(messenger.getAnswer());
+        }
+        else{
+            writer.println(message + "\n" + Utils.MSG_END_SERVICE);
+        }
     }
 }

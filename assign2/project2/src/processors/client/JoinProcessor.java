@@ -62,11 +62,11 @@ public class JoinProcessor implements Runnable {
 }
 
 
-for(int r = 0; r < 3; r++){
-    for(int a = 0; a < 3; a++){
-
-    }
-}
+//for(int r = 0; r < 3; r++){
+//    for(int a = 0; a < 3; a++){
+//
+//    }
+//}
 
 // for i to 3 retransmits
 //   for i to 3 accepted connections

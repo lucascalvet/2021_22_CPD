@@ -62,10 +62,10 @@ public class Node {
     }
 
     public void run() throws UnknownHostException {
-        Thread multicastThread = new Thread(new MembershipNode(this), "Multicast Thread");
+        //Thread multicastThread = new Thread(new MembershipNode(this), "Multicast Thread");
         Thread storeThread = new Thread(new StorageProtocol(nodeId, storePort), "Store Thread");
 
-        multicastThread.start();
+        //multicastThread.start();
         storeThread.start();
     }
 }

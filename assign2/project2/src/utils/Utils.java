@@ -15,6 +15,7 @@ public class Utils {
     private static final int HASH_BITS_SIZE = 256;
     public static final String MSG_END = "\nEND";
     public static final String MSG_TOMBSTONE = "TOMBSTONE";
+    public static final String MSG_END_SERVICE = "END OF SERVICE";
     private static final int HASH_ENCODE_SIZE = 64;
     private static final BigInteger CEIL = BigInteger.ONE.shiftLeft(256);
 
