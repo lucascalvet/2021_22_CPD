@@ -1,11 +1,8 @@
+package protocol;
+
 import utils.Utils;
 
 import java.net.*;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import static utils.Utils.readLogs;
 
 public class Node {
     private final InetAddress multicastAddr;

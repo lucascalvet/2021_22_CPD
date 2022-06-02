@@ -1,5 +1,6 @@
 package processors.node;
 
+import protocol.Node;
 import utils.Utils;
 
 import java.io.*;
@@ -11,20 +12,22 @@ public class JMessageProcessor implements Runnable{
     private final int port;
     private final String nodeId;
     private final String hashedId;
-    private final int NTHREADS = 2;
-    private int counter;
-    private String[] message;
+    private final int counter;
+    private final Node node;
+
     public JMessageProcessor(Node node, String nodeId, int port, int counter) {
         this.port = port;
         this.nodeId = nodeId;
         this.hashedId = Utils.encodeToHex(nodeId);
-        this.message = message;
         this.counter = counter;
+        this.node = node;
     }
 
     @Override
     public void run() {
         Utils.updateLogs(nodeId, counter, hashedId);
+
+        // TODO: missing waiting for random time and choosing the node -> to replace in "true"
 
         if (true) {
             try (Socket socket = new Socket(InetAddress.getByName(nodeId), port)) {
@@ -44,6 +47,5 @@ public class JMessageProcessor implements Runnable{
                 System.out.println("I/O error: " + ex.getMessage());
             }
         }
-        // TODO
     }
 }

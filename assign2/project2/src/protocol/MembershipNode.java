@@ -1,22 +1,20 @@
+package protocol;
 
 import processors.node.JMessageProcessor;
 import processors.node.LMessageProcessor;
-import processors.node.MMessageProcessor;
+import processors.node.UMessageProcessor;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MembershipNode implements Runnable {
     private final Node node;
     private final ExecutorService threadPool;
-    private InetAddress inetAddress;
 
-    MembershipNode(Node node) throws UnknownHostException {
+    MembershipNode(Node node) {
         this.node = node;
         int threadCount = Runtime.getRuntime().availableProcessors();
         threadPool = Executors.newFixedThreadPool(threadCount);
@@ -24,16 +22,12 @@ public class MembershipNode implements Runnable {
     }
 
     public void run() {
-
-        String multicastMessage = "test";
         MulticastSocket socket = null;
 
         try {
             socket = new MulticastSocket(node.getMulticastPort());
             byte[] buf = new byte[1024];
-
-            InetAddress group = InetAddress.getByName("230.0.0.0");
-            socket.joinGroup(group);
+            socket.joinGroup(node.getMulticastAddr());
 
             while (true) {
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
@@ -66,7 +60,7 @@ public class MembershipNode implements Runnable {
                             continue;
                         }
 
-                        this.threadPool.execute(new JMessageProcessor(this.node, nodeId, port, counter));
+                        this.threadPool.execute(new JMessageProcessor(node, nodeId, port, counter));
                         break;
                     // receives a L message
                     case 'L':
@@ -85,25 +79,27 @@ public class MembershipNode implements Runnable {
                         this.threadPool.execute(new LMessageProcessor(nodeId, counter));
                         break;
                     // receives a M message
-                    case 'M':
-                        this.threadPool.execute(new MMessageProcessor(nodeId, opArg, port, writer, message, counter, reader));
+                    case 'U':
+                        nodeId = message[1];
+                        // TODO: missing getting/parsing membership logs
+                        this.threadPool.execute(new UMessageProcessor(nodeId));
                         break;
-                    // invalid message
-                    case invalidMessage:
-                        throw new RuntimeException(invalidMessage);
-                        // message not recognized
+                    // ignore wrong messages
                     default:
                         continue;
                 }
             }
 
+        } catch (Exception e) {
+            try {
+                assert socket != null;
+                socket.leaveGroup(node.getMulticastAddr());
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
 
-            socket.leaveGroup(group);
             socket.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            this.threadPool.shutdown();
         }
-
-        this.threadPool.shutdown();
     }
 }

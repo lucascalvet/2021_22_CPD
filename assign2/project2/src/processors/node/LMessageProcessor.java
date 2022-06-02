@@ -1,6 +1,5 @@
 package processors.node;
 
-import jdk.jshell.execution.Util;
 import utils.Utils;
 
 public class LMessageProcessor implements Runnable{
@@ -15,7 +14,7 @@ public class LMessageProcessor implements Runnable{
 
     @Override
     public void run() {
-        //TODO: update members list
+        // update membership logs
         Utils.updateLogs(nodeId, counter, hashedId);
     }
 }
