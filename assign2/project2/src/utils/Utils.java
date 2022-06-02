@@ -259,4 +259,31 @@ public class Utils {
         }
         return 0;
     }
+
+    public static int updateAllLogs(Map<String, Integer> logs, String hashedId){
+        File logFile = new File(BASE_DIR + hashedId + "\\membership_log.txt");
+
+        // open file
+        FileWriter writer = null;
+
+        try {
+            writer = new FileWriter(logFile, false);
+
+            FileWriter finalWriter = writer;
+            logs.forEach((key, value) -> {
+                String log = key + " " + value + "\n";
+                try {
+                    finalWriter.write(log);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
+            writer.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return 0;
+    }
 }
