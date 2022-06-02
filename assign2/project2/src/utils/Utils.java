@@ -14,6 +14,7 @@ public class Utils {
     private final static String BASE_DIR = "src\\filesystem\\";
     private static final int HASH_BITS_SIZE = 256;
     public static final String MSG_END = "\nEND";
+    public static final String MSG_TOMBSTONE = "TOMBSTONE";
     private static final int HASH_ENCODE_SIZE = 64;
     private static final BigInteger CEIL = BigInteger.ONE.shiftLeft(256);
 
