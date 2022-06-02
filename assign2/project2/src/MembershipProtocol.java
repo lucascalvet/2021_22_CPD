@@ -13,9 +13,9 @@
 //                                  -> upon accepting 3 connections in port, stop accepting more of them
 //                                  -> if it does not receive 3 connections:
 //                                          -> retransmit the "J" to a total of 3 times including the first
-//                                  -> if it receives crete membership logs and members list
+//                                  -> if it receives create membership logs and members list
 
-// node receives "leave" from client -> multicast "L" to other nodes TODO
+// node receives "leave" from client -> multicast "L" to other nodes
 
 
 /** MESSAGES FROM OTHER NODES **/

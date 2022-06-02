@@ -1,4 +1,4 @@
-package processors.client;
+package processors.client.store;
 
 import utils.MessageSender;
 import utils.Utils;

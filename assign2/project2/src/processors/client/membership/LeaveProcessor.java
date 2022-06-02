@@ -1,4 +1,4 @@
-package processors.client;
+package processors.client.membership;
 
 import java.io.IOException;
 import java.io.PrintWriter;
