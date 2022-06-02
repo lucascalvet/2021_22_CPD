@@ -1,6 +1,8 @@
 package protocol;
 
-import processors.client.*;
+import processors.client.store.DeleteProcessor;
+import processors.client.store.GetProcessor;
+import processors.client.store.PutProcessor;
 import utils.Utils;
 
 import java.io.*;

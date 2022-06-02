@@ -1,9 +1,8 @@
-package processors.client;
+package processors.client.store;
 
 import utils.MessageSender;
 import utils.Utils;
 
-import javax.swing.*;
 import java.io.PrintWriter;
 import java.net.UnknownHostException;
 import java.util.List;

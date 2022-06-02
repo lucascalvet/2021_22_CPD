@@ -1,5 +1,5 @@
-import processors.client.JoinProcessor;
-import processors.client.LeaveProcessor;
+import processors.client.membership.JoinProcessor;
+import processors.client.membership.LeaveProcessor;
 
 import java.io.*;
 import java.net.InetAddress;
