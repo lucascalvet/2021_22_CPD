@@ -27,25 +27,29 @@ public class JMessageProcessor implements Runnable{
     public void run() {
         Utils.updateLogs(nodeId, counter, hashedId);
 
-        // TODO: missing waiting for random time and choosing the node -> to replace in "true"
+        // wait for a random time from 0 to 3 secs
+        try {
+            Thread.sleep((long) (Math.random() * 3000));
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
-        if (true) {
-            try (Socket socket = new Socket(InetAddress.getByName(nodeId), port)) {
+        // send the 32 most recent logs
+        try (Socket socket = new Socket(InetAddress.getByName(nodeId), port)) {
 
-                OutputStream output = socket.getOutputStream();
-                PrintWriter writer = new PrintWriter(output, true);
+            OutputStream output = socket.getOutputStream();
+            PrintWriter writer = new PrintWriter(output, true);
 
-                String toSend = node.get32Logs();
-                writer.print(toSend);
+            String toSend = node.get32Logs();
+            writer.print(toSend);
 
-            } catch (UnknownHostException ex) {
+        } catch (UnknownHostException ex) {
 
-                System.out.println("Server not found: " + ex.getMessage());
+            System.out.println("Server not found: " + ex.getMessage());
 
-            } catch (IOException ex) {
+        } catch (IOException ex) {
 
-                System.out.println("I/O error: " + ex.getMessage());
-            }
+            System.out.println("I/O error: " + ex.getMessage());
         }
     }
 }
