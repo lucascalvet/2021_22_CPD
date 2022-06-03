@@ -2,7 +2,6 @@ package processors.client.membership;
 
 import processors.node.LeaveTransferProcessor;
 import protocol.Node;
-import utils.MessageSender;
 import protocol.MembershipNode;
 
 import java.io.File;
@@ -16,11 +15,13 @@ import java.util.concurrent.Executors;
 import java.net.Socket;
 
 public class LeaveProcessor implements Runnable {
-    private Node node;
+    private final Node node;
     private final Socket clientSocket;
     private final MembershipNode membershipNode;
     private final ExecutorService threadPool;
-    public LeaveProcessor(Node node, Socket clientSocket, MembershipNode membershipNode) {
+    private String result = "";
+
+    public LeaveProcessor(Node node, MembershipNode membershipNode, Socket clientSocket) {
         this.node = node;
         this.clientSocket = clientSocket;
         this.membershipNode = membershipNode;
@@ -28,8 +29,38 @@ public class LeaveProcessor implements Runnable {
         this.threadPool = Executors.newFixedThreadPool(threadCount);
     }
 
+    public LeaveProcessor(Node node, MembershipNode membershipNode) {
+        this.node = node;
+        this.clientSocket = null;
+        this.membershipNode = membershipNode;
+        int threadCount = Runtime.getRuntime().availableProcessors();
+        this.threadPool = Executors.newFixedThreadPool(threadCount);
+    }
+
+    public String getResult() {
+        return result;
+    }
+
     @Override
     public void run() {
+        PrintWriter clientWriter = null;
+        if (clientSocket != null) {
+            try {
+                clientWriter = new PrintWriter(clientSocket.getOutputStream(), true);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        if (node.getCounter() % 2 != 0) {
+            if (clientWriter != null) {
+                clientWriter.println(node.getNodeId() + " LEAVE-> Node isn't joined to any cluster! Aborting.");
+                clientWriter.println(node.getMSG_END_SERVICE());
+            }
+            result = node.getNodeId() + " LEAVE-> Node isn't joined to any cluster! Aborting.";
+            return;
+        }
+
         //Storage change before membership message is transmitted
         File dir = node.getStorageDir();
         File[] storageListing = dir.listFiles();
@@ -37,7 +68,6 @@ public class LeaveProcessor implements Runnable {
             for (File child : storageListing) {
                 String key = child.getName().replaceFirst("[.][^.]+$", "");
                 if(!key.contains(node.getMSG_TOMBSTONE())){
-                    String value = node.getValue(key);
                     var activeMembersSorted = node.getActiveMembersSorted(key);
                     if(activeMembersSorted.size() > 0){
                         threadPool.execute(new LeaveTransferProcessor(node, key));
@@ -49,26 +79,14 @@ public class LeaveProcessor implements Runnable {
             }
         }
 
-        PrintWriter clientWriter;
-        try {
-            clientWriter = new PrintWriter(clientSocket.getOutputStream(), true);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        if (node.getCounter() % 2 != 0) {
-            clientWriter.println(node.getNodeId() + " LEAVE-> Node isn't joined to any cluster! Aborting.");
-            clientWriter.println(node.getMSG_END_SERVICE());
-            return;
-        }
-
         System.out.println("Quitting multicast thread.");
 
         this.membershipNode.stop();
 
         String info = "Initializing leave process.";
         System.out.println(info);
-        clientWriter.println(node.getNodeId() + " LEAVE-> " + info);
+        if (clientWriter != null)
+            clientWriter.println(node.getNodeId() + " LEAVE-> " + info);
 
         this.node.setCounter();
 
@@ -89,12 +107,16 @@ public class LeaveProcessor implements Runnable {
             socket.send(packet);
             socket.close();
         } catch (IOException e) {
+            result = node.getNodeId() + " LEAVE-> Error leaving cluster.";
             throw new RuntimeException(e);
         }
 
         info = "Finished leave process.";
         System.out.println(info);
-        clientWriter.println(node.getNodeId() + " LEAVE-> " + info);
-        clientWriter.println(node.getMSG_END_SERVICE());
+        if (clientWriter != null) {
+            clientWriter.println(node.getNodeId() + " LEAVE-> " + info);
+            clientWriter.println(node.getMSG_END_SERVICE());
+        }
+        result = node.getNodeId() + " LEAVE-> " + info;
     }
 }

@@ -1,5 +1,6 @@
 package processors.client.membership;
 
+import protocol.MembershipNode;
 import protocol.Node;
 
 import java.io.*;
@@ -9,13 +10,23 @@ import java.util.*;
 public class JoinProcessor implements Runnable {
     private final Node node;
     private final Socket clientSocket;
+    private final MembershipNode membershipNode;
+    private String result = "";
 
-    private final Thread multicastThread;
-
-    public JoinProcessor(Node node, Socket clientSocket, Thread multicastThread) {
+    public JoinProcessor(Node node, MembershipNode membershipNode, Socket clientSocket) {
         this.node = node;
         this.clientSocket = clientSocket;
-        this.multicastThread = multicastThread;
+        this.membershipNode = membershipNode;
+    }
+
+    public JoinProcessor(Node node, MembershipNode membershipNode) {
+        this.node = node;
+        this.clientSocket = null;
+        this.membershipNode = membershipNode;
+    }
+
+    public String getResult() {
+        return result;
     }
 
     @Override
@@ -30,16 +41,21 @@ public class JoinProcessor implements Runnable {
         int nReceived = 0;
         List<String> receivedFrom = new ArrayList<>();
         Map<String, Integer> nodes = new LinkedHashMap<>();
-        PrintWriter clientWriter;
-        try {
-            clientWriter = new PrintWriter(clientSocket.getOutputStream(), true);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        PrintWriter clientWriter = null;
+        if (clientSocket != null) {
+            try {
+                clientWriter = new PrintWriter(clientSocket.getOutputStream(), true);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         if (node.getCounter() % 2 == 0) {
-            clientWriter.println(node.getNodeId() + " JOIN-> Node is already joined! Aborting.");
-            clientWriter.println(node.getMSG_END_SERVICE());
+            if (clientWriter != null) {
+                clientWriter.println(node.getNodeId() + " JOIN-> Node is already joined! Aborting.");
+                clientWriter.println(node.getMSG_END_SERVICE());
+            }
+            result = node.getNodeId() + " JOIN-> Node is already joined! Aborting.";
             return;
         }
 
@@ -47,7 +63,8 @@ public class JoinProcessor implements Runnable {
 
         String info = "Initializing join process.";
         System.out.println(info);
-        clientWriter.println(node.getNodeId() + " JOIN-> " + info);
+        if (clientWriter != null)
+            clientWriter.println(node.getNodeId() + " JOIN-> " + info);
 
         boolean error = false;
         // multicast >> J << message
@@ -68,6 +85,7 @@ public class JoinProcessor implements Runnable {
                 datagramSocket.send(packet);
                 datagramSocket.close();
             } catch (IOException e) {
+                result = node.getNodeId() + " JOIN-> Error initializing node.";
                 throw new RuntimeException(e);
             }
 
@@ -82,7 +100,7 @@ public class JoinProcessor implements Runnable {
                         break;
                     }
 
-                    Socket socket = null;
+                    Socket socket;
                     try {
                         socket = serverSocket.accept();
                     } catch (SocketTimeoutException e) {
@@ -95,7 +113,7 @@ public class JoinProcessor implements Runnable {
                     InputStream input = socket.getInputStream();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
-                    String line = "";
+                    String line;
                     try {
                         line = reader.readLine();
                     } catch (IOException e) {
@@ -153,6 +171,7 @@ public class JoinProcessor implements Runnable {
                     nReceived++;
                 }
             } catch (IOException e) {
+                result = node.getNodeId() + " JOIN-> Error initializing node.";
                 throw new RuntimeException(e);
             }
         }
@@ -161,25 +180,18 @@ public class JoinProcessor implements Runnable {
 
         if (error) {
             info = "Failed to join the node";
-            System.out.println(info);
-            clientWriter.println(node.getNodeId() + " JOIN-> " + info);
-        }
-        else {
+        } else {
             info = "Joined node successfully. Received logs from " + nReceived + " nodes.";
-            System.out.println(info);
-            clientWriter.println(node.getNodeId() + " JOIN-> " + info);
         }
-        clientWriter.println(node.getMSG_END_SERVICE());
+        System.out.println(info);
+        if (clientWriter != null) {
+            clientWriter.println(node.getNodeId() + " JOIN-> " + info);
+            clientWriter.println(node.getMSG_END_SERVICE());
+        }
+        result = node.getNodeId() + " JOIN-> " + info;
 
         System.out.println("Starting multicast thread.");
 
-        multicastThread.start();
+        new Thread(membershipNode, "Multicast Thread").start();
     }
 }
-
-// for i to 3 retransmits
-//   for i to 3 accepted connections
-//       return
-//
-// code to assume node is alone here!
-
