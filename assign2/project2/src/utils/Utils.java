@@ -62,7 +62,7 @@ public class Utils {
     }
 
     public static String getFileContent(String relativePath) {
-        String filePath = BASE_DIR + relativePath;
+        String filePath = relativePath;
         byte[] encoded = new byte[0];
         try {
             Path path = Paths.get(filePath);

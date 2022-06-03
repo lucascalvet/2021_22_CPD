@@ -199,7 +199,7 @@ public class Node {
     }
 
     public synchronized String getValue(String key) {
-        return Utils.getFileContent(getFileRelativePath(key, false));
+        return Utils.getFileContent(Utils.BASE_DIR + getFileRelativePath(key, false));
     }
 
     public synchronized List<String> getActiveMembers() {
