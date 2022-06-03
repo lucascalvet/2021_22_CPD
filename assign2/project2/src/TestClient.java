@@ -59,12 +59,11 @@ public class TestClient {
             // receive server response to issued commmand
             InputStream input = socket.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-            String out = reader.readLine();
+            System.out.println("OUT:");
             String line;
-            while (!(line = reader.readLine()).equals(Utils.MSG_END_SERVICE)) {
-                out += "\n" + line;
+            while ((line = reader.readLine()) != null && !(line).equals(Utils.MSG_END_SERVICE)) {
+                System.out.println(line);
             }
-            System.out.println("OUT:\n" + out + "\n---");
             input.close();
             writer.close();
             output.close();

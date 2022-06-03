@@ -7,13 +7,9 @@ import utils.Utils;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.file.FileAlreadyExistsException;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class PutProcessor implements Runnable{
     private final String value;
@@ -55,7 +51,7 @@ public class PutProcessor implements Runnable{
                 if(store){
                     store_str = "stored the pair";
                     //System.out.println("PP Stored");
-                    Utils.writeToFile(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt", value, !exists);
+                    Utils.writeToFile(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt", value);
                 }
                 if(activeNodesSorted.size() > 1){
                     int nextRep = node.getREPLICATION_FACTOR() - 1;
@@ -88,7 +84,7 @@ public class PutProcessor implements Runnable{
             if(store){
                 //System.out.println("PP Stored");
                 store_str = "stored the pair";
-                Utils.writeToFile(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt", value, !exists);
+                Utils.writeToFile(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt", value);
             }
             nextRep -= 1;
             if(nextRep > 0){

@@ -17,6 +17,7 @@ public class Node {
     private final int RETRY_FACTOR = 3;
 
     public Node(InetAddress multicastAddr, Integer multicastPort, String nodeId, Integer storePort) throws UnknownHostException {
+        System.out.println("Creating filesystem directory: " + new File(Utils.BASE_DIR).mkdirs());
         this.multicastAddr = multicastAddr;
         this.multicastPort = multicastPort;
         this.nodeId = nodeId;
@@ -57,11 +58,9 @@ public class Node {
 
     public void createDirectories(){
         Utils.makeDir(hashedId);
-        //Utils.writeToFile(hashedId + "\\membership_log.txt", nodeId + " 0\n", true);
-        Utils.writeToFile(hashedId + File.separator + "membership_log.txt", "127.0.0.1 0\n127.0.0.2 0\n127.0.0.3 0\n127.0.0.4 0\n127.0.0.5 0\n", true);
-        //Utils.writeToFile(hashedId + File.separator + "membership_log.txt", "127.0.0.1 0\n", true);
-        //Utils.writeToFile(hashedId + File.separator + "membership_log.txt", "127.0.0.1 0\n127.0.0.2 0\n", true);
-        Utils.makeDir(hashedId + "\\storage");
+        System.out.println("Node hash: " + this.hashedId);
+        //Utils.writeToFile(hashedId + File.separator + "membership_log.txt", "127.0.0.1 0\n127.0.0.2 0\n127.0.0.3 0\n127.0.0.4 0\n127.0.0.5 0\n", true);
+        Utils.makeDir(hashedId + File.separator + "storage");
     }
 
     public synchronized int getCounter() {
@@ -91,6 +90,11 @@ public class Node {
     }
 
     public synchronized void setAllLogs(Map<String, Integer> logs) {
+        logs.put(this.nodeId, this.getCounter());
+        Utils.setAllLogs(logs, this.hashedId);
+    }
+
+    public synchronized void updateAllLogs(Map<String, Integer> logs) {
         Utils.updateAllLogs(logs, this.hashedId);
     }
 

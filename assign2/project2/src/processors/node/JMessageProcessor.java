@@ -15,7 +15,6 @@ import java.util.concurrent.Executors;
 public class JMessageProcessor implements Runnable{
     private final int port;
     private final String nodeId;
-    private final String hashedId;
     private final int counter;
     private final Node node;
     private final ExecutorService threadPool;
@@ -23,7 +22,6 @@ public class JMessageProcessor implements Runnable{
     public JMessageProcessor(Node node, String nodeId, int port, int counter) {
         this.port = port;
         this.nodeId = nodeId;
-        this.hashedId = Utils.encodeToHex(nodeId);
         this.counter = counter;
         this.node = node;
         int threadCount = Runtime.getRuntime().availableProcessors();
@@ -45,7 +43,7 @@ public class JMessageProcessor implements Runnable{
                     send = true;
                 }
                 else{
-                    if(Utils.getActiveMembersSorted(node.getHashedId(), key).get(2).equals(node.getNodeId()) && Utils.hashDistance(key, hashedId).compareTo(Utils.hashDistance(key, node.getHashedId())) == -1){
+                    if(Utils.getActiveMembersSorted(node.getHashedId(), key).get(2).equals(node.getNodeId()) && Utils.hashDistance(key, Utils.encodeToHex(nodeId)).compareTo(Utils.hashDistance(key, node.getHashedId())) == -1){
                         send = true;
                         delete = true;
                     }
@@ -58,28 +56,30 @@ public class JMessageProcessor implements Runnable{
                     }
                 }
                 if(delete){
-                    Utils.writeToFile(node.getHashedId() + File.separator + "storage" + File.separator + child.getName(), Utils.MSG_TOMBSTONE, false);
+                    Utils.writeToFile(node.getHashedId() + File.separator + "storage" + File.separator + child.getName(), Utils.MSG_TOMBSTONE);
                 }
             }
         }
 
-        Utils.updateLogs(nodeId, counter, hashedId);
+        System.out.println("Adding " + nodeId + " " + counter + " to the membership log.");
+        node.addLog(nodeId, counter);
 
         // wait for a random time from 0 to 3 secs
         try {
-            Thread.sleep((long) (Math.random() * 3000));
+            Thread.sleep((long) (Math.random() * 1000));
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
 
         // send the 32 most recent logs
         try (Socket socket = new Socket(InetAddress.getByName(nodeId), port)) {
+            String toSend = node.get32Logs();
+            System.out.println("Sending last 32 logs to " + socket.getInetAddress().getHostName());
+            String message = "M " + node.getNodeId() + "\n" + toSend + "end";
 
             OutputStream output = socket.getOutputStream();
             PrintWriter writer = new PrintWriter(output, true);
-
-            String toSend = node.get32Logs();
-            writer.print(toSend + "end\n");
+            writer.println(message);
 
         } catch (UnknownHostException ex) {
 
