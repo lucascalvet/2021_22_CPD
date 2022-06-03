@@ -12,8 +12,7 @@ public class TestClient {
     public static List<String> operations = Arrays.asList("put", "get", "delete", "join", "leave");
     private static String op;
     private static AccessPoint ap;
-    private static String opnd;
-    private static Integer nArgs;
+    private static String opnd;    private static Integer nArgs;
 
     public static void main(String[] args) throws UnknownHostException {
         // parsing arguments
