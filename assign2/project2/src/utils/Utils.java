@@ -260,7 +260,7 @@ public class Utils {
         return 0;
     }
 
-    public static int updateAllLogs(Map<String, Integer> logs, String hashedId){
+    public static void updateAllLogs(Map<String, Integer> logs, String hashedId){
         File logFile = new File(BASE_DIR + hashedId + "\\membership_log.txt");
 
         // open file
@@ -284,6 +284,5 @@ public class Utils {
             throw new RuntimeException(e);
         }
 
-        return 0;
     }
 }

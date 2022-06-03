@@ -1,5 +1,7 @@
 package protocol;
 
+import processors.client.membership.JoinProcessor;
+import processors.client.membership.LeaveProcessor;
 import processors.client.store.DeleteProcessor;
 import processors.client.store.GetProcessor;
 import processors.client.store.PutProcessor;
@@ -14,33 +16,25 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class StorageProtocol implements Runnable {
-    private final Integer port;
-    private final String nodeId;
-    private final String hashedId;
+    private final Node node;
     private final int NTHREADS = 10;
-    private final InetAddress inetAddress;
     private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
     private Thread runningThread = null;
-    private InetAddress multicastAddress;
-    private Integer multicastPort;
 
-    StorageProtocol(String nodeId, Integer port, InetAddress multicastAddress, Integer multicastPort) throws UnknownHostException {
-        this.port = port;
-        this.nodeId = nodeId;
-        this.hashedId = Utils.encodeToHex(nodeId);
-        this.inetAddress = InetAddress.getByName(nodeId);
-        this.multicastAddress = multicastAddress;
-        this.multicastPort = multicastPort;
+    StorageProtocol(Node node) throws UnknownHostException {
+        this.node = node;
     }
 
     public void run() {
-
         synchronized (this) {
             this.runningThread = Thread.currentThread();
         }
-        try (ServerSocket serverSocket = new ServerSocket(port, 50, inetAddress)) {
-            System.out.println("Server is listening on port " + port);
-            System.out.println("NodeID: " + nodeId);
+
+        MembershipNode membershipNode = new MembershipNode(this.node);;
+
+        try (ServerSocket serverSocket = new ServerSocket(node.getStorePort(), 50, node.getAddress())) {
+            System.out.println("Server is listening on port " + node.getStorePort());
+            System.out.println("NodeID: " + node.getNodeId());
 
             while (true) {
                 //System.out.println("ddd");
@@ -98,21 +92,24 @@ public class StorageProtocol implements Runnable {
                 switch (op) {
                     case "P":
                     case "put":
-                        this.threadPool.execute(new PutProcessor(nodeId, opArg, replicationFactor, port, writer));
+                        this.threadPool.execute(new PutProcessor(node.getNodeId(), opArg, replicationFactor, node.getStorePort(), writer));
                         break;
                     case "G":
                     case "get":
-                        this.threadPool.execute(new GetProcessor(nodeId, opArg, port, writer));
+                        this.threadPool.execute(new GetProcessor(node.getNodeId(), opArg, node.getStorePort(), writer));
                         break;
                     case "D":
                     case "delete":
-                        this.threadPool.execute(new DeleteProcessor(nodeId, opArg, replicationFactor, port, writer));
+                        this.threadPool.execute(new DeleteProcessor(node.getNodeId(), opArg, replicationFactor, node.getStorePort(), writer));
                         break;
                     case "join":
-                        this.threadPool.execute(new JoinProcessor(writer, multicastAddress, multicastPort, nodeId));
+                        this.threadPool.execute(new JoinProcessor(this.node));
+                        Thread multicastThread = new Thread(membershipNode, "Multicast Thread");
+                        multicastThread.start();
                         break;
                     case "leave":
-                        this.threadPool.execute(new LeaveProcessor(writer, multicastAddress, multicastPort, nodeId));
+                        this.threadPool.execute(new LeaveProcessor(this.node));
+                        membershipNode.stop();
                         break;
                     default:
                         writer.println("Invalid Op");

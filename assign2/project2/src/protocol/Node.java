@@ -3,6 +3,7 @@ package protocol;
 import utils.Utils;
 
 import java.net.*;
+import java.util.Map;
 
 public class Node {
     private final InetAddress multicastAddr;
@@ -20,6 +21,7 @@ public class Node {
         this.nodeAddress = InetAddress.getByName(nodeId);
         this.storePort = storePort;
         createDirectories();
+        setCounter();
     }
 
     public InetAddress getMulticastAddr() {
@@ -53,6 +55,24 @@ public class Node {
         Utils.makeDir(hashedId + "\\storage");
     }
 
+    public synchronized int getCounter() {
+        Map<String, Integer> logs = Utils.readLogs(this.getHashedId());
+        if (logs.containsKey(this.nodeId)) {
+            return logs.get(this.nodeId);
+        }
+        return -1;
+    }
+
+    public synchronized void setCounter() {
+        Map<String, Integer> logs = Utils.readLogs(this.getHashedId());
+        if (logs.containsKey(this.nodeId)) {
+            Utils.updateLogs(this.nodeId, logs.get(this.nodeId) + 1, this.hashedId);
+        }
+        else {
+            Utils.updateLogs(this.nodeId, -1, this.hashedId);
+        }
+    }
+
     public synchronized void addLog(String nodeId, int counter) {
         Utils.updateLogs(nodeId, counter, this.hashedId);
     }
@@ -61,11 +81,12 @@ public class Node {
         return Utils.getNLogLines(this.hashedId, 32);
     }
 
-    public void run() throws UnknownHostException {
-        Thread multicastThread = new Thread(new MembershipNode(this), "Multicast Thread");
-        Thread storeThread = new Thread(new StorageProtocol(nodeId, storePort), "Store Thread");
+    public synchronized void setAllLogs(Map<String, Integer> logs) {
+        Utils.updateAllLogs(logs, this.hashedId);
+    }
 
-        multicastThread.start();
+    public void run() throws UnknownHostException {
+        Thread storeThread = new Thread(new StorageProtocol(this), "Store Thread");
         storeThread.start();
     }
 }

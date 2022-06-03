@@ -41,7 +41,7 @@ public class JMessageProcessor implements Runnable{
             PrintWriter writer = new PrintWriter(output, true);
 
             String toSend = node.get32Logs();
-            writer.print(toSend);
+            writer.print(toSend + "end\n");
 
         } catch (UnknownHostException ex) {
 
