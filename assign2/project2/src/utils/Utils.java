@@ -12,10 +12,8 @@ import java.util.*;
 
 public class Utils {
     public final static String BASE_DIR = "filesystem" + File.separator;
-    public static final String MSG_END = "\nEND";
-    public static final String MSG_TOMBSTONE = "TOMBSTONE";
+    public static final String MSG_END = "END";
     public static final String MSG_END_SERVICE = "END OF SERVICE";
-    private static final int HASH_ENCODE_SIZE = 64;
     private static final BigInteger CEIL = BigInteger.ONE.shiftLeft(256);
 
     private static String bytesToHex(byte[] hash) {
@@ -47,6 +45,10 @@ public class Utils {
     public static boolean fileExists(String relativePath) {
         String filePath = BASE_DIR + relativePath;
         return Files.exists(Paths.get(filePath));
+    }
+
+    public static boolean renameFile(String originalRelativePath, String newRelativePath){
+        return new File(BASE_DIR + originalRelativePath).renameTo(new File(BASE_DIR + newRelativePath));
     }
 
     public static boolean deleteFile(String relativePath) {
@@ -203,10 +205,6 @@ public class Utils {
             }
         }
         return activeNodes;
-    }
-
-    public static int getHashEncodeSize() {
-        return HASH_ENCODE_SIZE;
     }
 
     public static int updateLogs(String nodeId, Integer counter, String hashedId) {

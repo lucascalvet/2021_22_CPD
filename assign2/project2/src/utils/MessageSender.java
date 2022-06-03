@@ -12,7 +12,7 @@ public class MessageSender implements Runnable{
 
     public MessageSender(String ip, Integer port, String message) throws UnknownHostException {
         this.ap = new AccessPoint(ip + ":" + port.toString());
-        this.message = message + Utils.MSG_END;
+        this.message = message + "\n" + Utils.MSG_END;
         this.answer = "No answer yet!";
     }
 

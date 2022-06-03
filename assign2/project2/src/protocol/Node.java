@@ -4,6 +4,7 @@ import utils.Utils;
 
 import java.io.File;
 import java.net.*;
+import java.util.List;
 import java.util.Map;
 
 public class Node {
@@ -15,6 +16,7 @@ public class Node {
     private final Integer storePort;
     private final int REPLICATION_FACTOR = 3;
     private final int RETRY_FACTOR = 3;
+    private static final String MSG_TOMBSTONE = "TOMBSTONE";
 
     public Node(InetAddress multicastAddr, Integer multicastPort, String nodeId, Integer storePort) throws UnknownHostException {
         System.out.println("Creating filesystem directory: " + new File(Utils.BASE_DIR).mkdirs());
@@ -31,6 +33,12 @@ public class Node {
     public int getREPLICATION_FACTOR(){return REPLICATION_FACTOR;}
 
     public int getRETRY_FACTOR(){return RETRY_FACTOR;}
+
+    public String getMSG_TOMBSTONE(){return MSG_TOMBSTONE;}
+
+    public String getMSG_END_SERVICE(){return Utils.MSG_END_SERVICE;}
+
+    public String getMSG_END(){return Utils.MSG_END;}
 
     public InetAddress getMulticastAddr() {
         return multicastAddr;
@@ -54,6 +62,15 @@ public class Node {
 
     public Integer getStorePort() {
         return storePort;
+    }
+
+    public File getStorageDir(){return new File(Utils.BASE_DIR + getHashedId() + File.separator + "storage");}
+
+    private String getFileRelativePath(String key, boolean tombstoned){
+        if(tombstoned){
+            key = getMSG_TOMBSTONE() + key;
+        }
+        return getHashedId() + File.separator + "storage" + File.separator + key + ".txt";
     }
 
     public void createDirectories(){
@@ -98,6 +115,52 @@ public class Node {
     public synchronized void updateAllLogs(Map<String, Integer> logs) {
         Utils.updateAllLogs(logs, this.hashedId);
     }
+
+    public synchronized boolean storePair(String value) {
+        String key = Utils.encodeToHex(value);
+        if (isTombstone(Utils.encodeToHex(value))){
+            Utils.deleteFile(getFileRelativePath(key, true));
+        }
+        return Utils.writeToFile(getFileRelativePath(key, false), value);
+    }
+
+    public synchronized boolean tombstone(String key) {
+        //return Utils.writeToFile(getHashedId() + File.separator + "storage" + File.separator + key + ".txt", getMSG_TOMBSTONE());
+        boolean renamed = Utils.renameFile(getFileRelativePath(key, false), getFileRelativePath(key, true));
+        if(renamed){
+            return Utils.writeToFile(getFileRelativePath(key, true), "");
+        }
+        return false;
+    }
+
+    public synchronized boolean pairExists(String key){
+        return Utils.fileExists(getFileRelativePath(key, false)) || Utils.fileExists(getFileRelativePath(key, false));
+    }
+
+    public synchronized boolean isTombstone(String key){
+        //return Utils.getFileContent(getHashedId() + File.separator + "storage" + File.separator + key + ".txt").equals(getMSG_TOMBSTONE());
+        return Utils.fileExists(getFileRelativePath(key, true));
+    }
+
+    public synchronized boolean isAvailable(String key){
+        return pairExists(key) && !isTombstone(key);
+    }
+
+    public int compareDistances(String key, String otherId){
+        return Utils.hashDistance(key, Utils.encodeToHex(otherId)).compareTo(Utils.hashDistance(key, hashedId));
+    }
+
+    public String getKey(String value){
+        return Utils.encodeToHex(value);
+    }
+
+    public synchronized String getValue(String key){
+        return Utils.getFileContent(getFileRelativePath(key, false));
+    }
+
+    public synchronized List<String> getActiveMembers(){return Utils.getActiveMembers(getHashedId());}
+
+    public synchronized List<String> getActiveMembersSorted(String hashedTarget){return Utils.getActiveMembersSorted(getHashedId(), hashedTarget);}
 
     public void run() throws UnknownHostException {
         Thread storeThread = new Thread(new StorageProtocol(this), "Store Thread");

@@ -5,10 +5,8 @@ import processors.client.membership.LeaveProcessor;
 import processors.client.store.DeleteProcessor;
 import processors.client.store.GetProcessor;
 import processors.client.store.PutProcessor;
-import utils.Utils;
 
 import java.io.*;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -62,7 +60,7 @@ public class StorageProtocol implements Runnable {
 
                 op = commands[0];
                 if (!(op.equals("join") || op.equals("leave"))) {
-
+                    //Storage Message->"OP factor Value\nEND"
                     //If the first character is P, G or D we know the message is from another node
                     if (commandLine.charAt(0) == 'P' || commandLine.charAt(0) == 'G' || commandLine.charAt(0) == 'D') {
                         commands = commands[1].split("\\s+", 2);
@@ -75,7 +73,7 @@ public class StorageProtocol implements Runnable {
                     if (commands.length >= 2) opArg = commands[1];
 
                     String line;
-                    while (!(line = reader.readLine()).equals(Utils.MSG_END.substring(1))) {
+                    while (!(line = reader.readLine()).equals(node.getMSG_END())) {
                         opArg += "\n" + line;
                     }
 

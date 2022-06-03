@@ -66,11 +66,11 @@ public class MembershipNode implements Runnable {
         int threadCount = Runtime.getRuntime().availableProcessors();
         threadPool = Executors.newFixedThreadPool(threadCount);
         System.out.println(Thread.currentThread().getName() + ": Created thread pool with " + threadCount + " threads");
-        exit = false;
     }
 
     public void run() {
         MulticastSocket socket = null;
+        exit = false;
 
         try {
             socket = new MulticastSocket(node.getMulticastPort());

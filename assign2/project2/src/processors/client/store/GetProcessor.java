@@ -2,16 +2,12 @@ package processors.client.store;
 
 import protocol.Node;
 import utils.MessageSender;
-import utils.Utils;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class GetProcessor implements Runnable{
     private MessageSender messenger = null;
@@ -39,14 +35,14 @@ public class GetProcessor implements Runnable{
     }
 
     public void run(){
-        if(Utils.fileExists(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt") && !Utils.getFileContent(node.getHashedId() + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
-            String value = Utils.getFileContent(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt");
+        if(node.isAvailable(key)){
+            String value = node.getValue(key);
             message = this.node.getNodeId() + " GET-> Value Fetched: " + value;
             //System.out.println(message);
             //writer.println(message);
         }
         else{
-            List<String> activeNodesSorted = Utils.getActiveMembersSorted(node.getHashedId(), key);
+            List<String> activeNodesSorted = node.getActiveMembersSorted(key);
             for(int i = 0; i < activeNodesSorted.size(); i++){
                 System.out.println("GP AN" + Integer.toString(i) + "->" + activeNodesSorted.get(i));
             }
@@ -87,8 +83,8 @@ public class GetProcessor implements Runnable{
             System.out.println("ANS:\n" + messenger.getAnswer() + "\n---");
         }
         else{
-            writer.println(message + "\n" + Utils.MSG_END_SERVICE);
-            System.out.println("ANS:\n" + message + "\n" + Utils.MSG_END_SERVICE + "\n---");
+            writer.println(message + "\n" + node.getMSG_END_SERVICE());
+            System.out.println("ANS:\n" + message + "\n" + node.getMSG_END_SERVICE() + "\n---");
         }
     }
 }

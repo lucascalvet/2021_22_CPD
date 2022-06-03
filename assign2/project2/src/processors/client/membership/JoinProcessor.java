@@ -1,7 +1,6 @@
 package processors.client.membership;
 
 import protocol.Node;
-import utils.Utils;
 
 import java.io.*;
 import java.net.*;
@@ -42,8 +41,8 @@ public class JoinProcessor implements Runnable {
         }
 
         if (node.getCounter() % 2 == 0) {
-            clientWriter.println("Node is already joined! Aborting.");
-            clientWriter.println(Utils.MSG_END_SERVICE);
+            clientWriter.println(node.getNodeId() + " JOIN-> Node is already joined! Aborting.");
+            clientWriter.println(node.getMSG_END_SERVICE());
             return;
         }
 
@@ -51,7 +50,7 @@ public class JoinProcessor implements Runnable {
 
         String info = "Initializing join process.";
         System.out.println(info);
-        clientWriter.println(info);
+        clientWriter.println(node.getNodeId() + " JOIN-> " + info);
 
         boolean error = false;
         // multicast >> J << message
@@ -165,14 +164,14 @@ public class JoinProcessor implements Runnable {
         if (error) {
             info = "Failed to join the node";
             System.out.println(info);
-            clientWriter.println(info);
+            clientWriter.println(node.getNodeId() + " JOIN-> " + info);
         }
         else {
             info = "Joined node successfully. Received logs from " + nReceived + " nodes.";
             System.out.println(info);
-            clientWriter.println(info);
+            clientWriter.println(node.getNodeId() + " JOIN-> " + info);
         }
-        clientWriter.println(Utils.MSG_END_SERVICE);
+        clientWriter.println(node.getMSG_END_SERVICE());
 
         System.out.println("Starting multicast thread.");
 

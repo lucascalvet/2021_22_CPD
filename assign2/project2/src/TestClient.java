@@ -4,7 +4,9 @@ import utils.Utils;
 import java.net.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 // usage: java TestClient <node_ap> <operation> [<opnd>]
@@ -12,7 +14,9 @@ public class TestClient {
     public static List<String> operations = Arrays.asList("put", "get", "delete", "join", "leave");
     private static String op;
     private static AccessPoint ap;
-    private static String opnd;    private static Integer nArgs;
+    private static String opnd;
+    private static Integer nArgs;
+    private static String CLIENT_LOG_DIRECTORY = "client_logs";
 
     public static void main(String[] args) throws UnknownHostException {
         // parsing arguments
@@ -59,13 +63,17 @@ public class TestClient {
             InputStream input = socket.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
             System.out.println("OUT:");
-            String line;
+            String line, answer = "";
             while ((line = reader.readLine()) != null && !(line).equals(Utils.MSG_END_SERVICE)) {
+                answer += line + "\n";
                 System.out.println(line);
             }
             input.close();
             writer.close();
             output.close();
+            Utils.makeDir(CLIENT_LOG_DIRECTORY);
+            String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss'.txt'").format(new Date());
+            Utils.writeToFile(CLIENT_LOG_DIRECTORY + File.separator + timeStamp, "REQUEST:\n" + String.join(" ", args) + "\nSERVER ANSWER:\n" + answer + "ENDLOG");
         } catch (UnknownHostException ex) {
             System.out.println("Server not found: " + ex.getMessage());
         } catch (IOException ex) {
@@ -75,7 +83,7 @@ public class TestClient {
 
     private static String getCommand(){
         if(nArgs == 2) return op;
-        else if(nArgs == 3) return op + " " + opnd + Utils.MSG_END;
+        else if(nArgs == 3) return op + " " + opnd + "\n" + Utils.MSG_END;
         return null;
     }
 }
