@@ -30,7 +30,12 @@ public class MessageSender implements Runnable{
             //this.answer = new String(input.readAllBytes(), StandardCharsets.UTF_8);
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
             this.answer = reader.readLine();
-            System.out.println("ANS: " + answer);
+            String line;
+            while (!(line = reader.readLine()).equals(Utils.MSG_END_SERVICE)) {
+                this.answer += "\n" + line;
+            }
+            //this.answer += "\n" + Utils.MSG_END_SERVICE;
+            this.answer += "\n" + Utils.MSG_END_SERVICE;
             input.close();
             writer.close();
             output.close();

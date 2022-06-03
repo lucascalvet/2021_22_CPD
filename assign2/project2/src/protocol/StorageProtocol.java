@@ -92,15 +92,15 @@ public class StorageProtocol implements Runnable {
                 switch (op) {
                     case "P":
                     case "put":
-                        this.threadPool.execute(new PutProcessor(node.getNodeId(), opArg, replicationFactor, node.getStorePort(), writer));
+                        this.threadPool.execute(new PutProcessor(node.getNodeId(), opArg, replicationFactor, node.getStorePort(), socket));
                         break;
                     case "G":
                     case "get":
-                        this.threadPool.execute(new GetProcessor(node.getNodeId(), opArg, node.getStorePort(), writer));
+                        this.threadPool.execute(new GetProcessor(node.getNodeId(), opArg, node.getStorePort(), socket));
                         break;
                     case "D":
                     case "delete":
-                        this.threadPool.execute(new DeleteProcessor(node.getNodeId(), opArg, replicationFactor, node.getStorePort(), writer));
+                        this.threadPool.execute(new DeleteProcessor(node.getNodeId(), opArg, replicationFactor, node.getStorePort(), socket));
                         break;
                     case "join":
                         this.threadPool.execute(new JoinProcessor(this.node));
