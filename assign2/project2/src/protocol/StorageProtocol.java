@@ -5,21 +5,23 @@ import processors.client.membership.LeaveProcessor;
 import processors.client.store.DeleteProcessor;
 import processors.client.store.GetProcessor;
 import processors.client.store.PutProcessor;
+import rmi.MembershipRmi;
 import utils.Utils;
 
 import java.io.*;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
+import java.rmi.RemoteException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class StorageProtocol implements Runnable {
-    private final Node node;
+public class StorageProtocol implements Runnable, MembershipRmi {
+    private Node node = null;
     private final ExecutorService threadPool;
+    private final MembershipNode membershipNode = new MembershipNode(this.node);
+    private Socket socket;
 
-    StorageProtocol(Node node) throws UnknownHostException {
+    StorageProtocol(Node node) {
         this.node = node;
         int threadCount = Runtime.getRuntime().availableProcessors();
         threadPool = Executors.newFixedThreadPool(threadCount);
@@ -27,14 +29,14 @@ public class StorageProtocol implements Runnable {
     }
 
     public void run() {
-        MembershipNode membershipNode = new MembershipNode(this.node);
+
 
         try (ServerSocket serverSocket = new ServerSocket(node.getStorePort(), 50, node.getAddress())) {
             System.out.println("Server is listening on port " + node.getStorePort());
             System.out.println("NodeID: " + node.getNodeId());
 
             while (true) {
-                Socket socket = serverSocket.accept();
+                this.socket = serverSocket.accept();
                 System.out.println("Accepted New Socket");
 
                 InputStream input = socket.getInputStream();
@@ -98,6 +100,7 @@ public class StorageProtocol implements Runnable {
                     case "delete":
                         this.threadPool.execute(new DeleteProcessor(this.node, opArg, factor, socket));
                         break;
+                        /*
                     case "join":
                         Thread multicastThread = new Thread(membershipNode, "Multicast Thread");
                         this.threadPool.execute(new JoinProcessor(this.node, socket, multicastThread));
@@ -105,6 +108,7 @@ public class StorageProtocol implements Runnable {
                     case "leave":
                         this.threadPool.execute(new LeaveProcessor(this.node, socket, membershipNode));
                         break;
+                         */
                     default:
                         writer.println("Invalid Op");
                 }
@@ -115,5 +119,16 @@ public class StorageProtocol implements Runnable {
             ex.printStackTrace();
         }
         this.threadPool.shutdown();
+    }
+
+    @Override
+    public void leave() throws RemoteException {
+        this.threadPool.execute(new LeaveProcessor(this.node, socket, membershipNode));
+    }
+
+    @Override
+    public void join() throws RemoteException {
+        Thread multicastThread = new Thread(membershipNode, "Multicast Thread");
+        this.threadPool.execute(new JoinProcessor(this.node, socket, multicastThread));
     }
 }

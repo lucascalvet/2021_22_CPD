@@ -3,7 +3,12 @@ package protocol;
 import utils.Utils;
 
 import java.io.File;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.UnknownHostException;
+import java.rmi.AlreadyBoundException;
+import java.rmi.Naming;
+import java.rmi.RemoteException;
 import java.util.Map;
 
 public class Node {
@@ -99,8 +104,13 @@ public class Node {
         Utils.updateAllLogs(logs, this.hashedId);
     }
 
-    public void run() throws UnknownHostException {
-        Thread storeThread = new Thread(new StorageProtocol(this), "Store Thread");
+    public void run() throws UnknownHostException, RemoteException, AlreadyBoundException, MalformedURLException {
+        System.setProperty("java.rmi.server.hostname","192.168.56.1");
+        StorageProtocol storageProtocol = new StorageProtocol(this);
+        // rmi
+        Naming.rebind("Membership", storageProtocol);
+
+        Thread storeThread = new Thread(storageProtocol);
         storeThread.start();
     }
 }

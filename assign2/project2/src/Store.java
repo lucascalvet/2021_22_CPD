@@ -1,11 +1,14 @@
 import protocol.Node;
 
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.UnknownHostException;
+import java.rmi.AlreadyBoundException;
+import java.rmi.RemoteException;
 
 public class Store {
 
-    public static void main(String[] args) throws UnknownHostException {
+    public static void main(String[] args) throws UnknownHostException, MalformedURLException, AlreadyBoundException, RemoteException {
         if (args.length != 4) throw new IllegalArgumentException("Wrong number of arguments.\n" + getUsage());
 
         InetAddress multicastAddr = InetAddress.getByName(args[0]);
