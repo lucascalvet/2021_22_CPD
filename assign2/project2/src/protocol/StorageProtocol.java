@@ -48,6 +48,7 @@ public class StorageProtocol implements Runnable {
                 String op = null;
                 String[] commands = null;
                 int factor = -1;
+                boolean force = false;
 
                 if (commandLine.length() == 0) {
                     writer.println("No message given");
@@ -65,7 +66,7 @@ public class StorageProtocol implements Runnable {
                 if (!(op.equals("join") || op.equals("leave"))) {
                     //Storage Message->"OP factor Value\nEND"
                     //If the first character is P, G or D we know the message is from another node
-                    if (commandLine.charAt(0) == 'P' || commandLine.charAt(0) == 'G' || commandLine.charAt(0) == 'D') {
+                    if (commandLine.charAt(0) == 'F' || commandLine.charAt(0) == 'P' || commandLine.charAt(0) == 'G' || commandLine.charAt(0) == 'D') {
                         commands = commands[1].split("\\s+", 2);
                         if (commands.length == 0) {
                             writer.println("No operation given");
@@ -87,9 +88,11 @@ public class StorageProtocol implements Runnable {
                 }
 
                 switch (op) {
+                    case "F":
+                        force = true;
                     case "P":
                     case "put":
-                        this.threadPool.execute(new PutProcessor(this.node, opArg, factor, socket));
+                        this.threadPool.execute(new PutProcessor(this.node, opArg, factor, force, socket));
                         break;
                     case "G":
                     case "get":

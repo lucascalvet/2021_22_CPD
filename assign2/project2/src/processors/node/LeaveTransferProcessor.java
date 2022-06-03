@@ -20,7 +20,7 @@ public class LeaveTransferProcessor implements Runnable{
     @Override
     public void run() {
         try {
-            MessageSender messenger = new MessageSender(node.getActiveMembersSorted(key).get(0), node.getStorePort(), "P " + String.valueOf(node.getREPLICATION_FACTOR() + 1) + " " + value);
+            MessageSender messenger = new MessageSender(node.getActiveMembersSorted(key).get(0), node.getStorePort(), "F " + String.valueOf(node.getREPLICATION_FACTOR() + 1) + " " + value);
             messenger.run();
             //System.out.println(messenger.getAnswer());
             node.tombstone(key);

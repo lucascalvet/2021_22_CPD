@@ -51,7 +51,7 @@ public class JMessageProcessor implements Runnable{
                         }
                         if(send){
                             try {
-                                threadPool.execute(new MessageSender(nodeId, node.getStorePort(), "P 1 " + value));
+                                threadPool.execute(new MessageSender(nodeId, node.getStorePort(), "F 1 " + value));
                             } catch (IOException e) {
                                 throw new RuntimeException(e);
                             }

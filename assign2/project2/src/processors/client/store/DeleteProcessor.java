@@ -36,10 +36,10 @@ public class DeleteProcessor implements Runnable{
         List<String> activeNodesSorted = node.getActiveMembersSorted(key);
         int nextRep = replicationFactor;
         if(node.pairExists(key)){
-            nextRep -= 1;
             //System.out.println("DP FileExists");
             if(!node.isTombstone(key)){
                 if(node.tombstone(key)){
+                    nextRep -= 1;
                     deleted = true;
                     //System.out.println("DP TombStoned!");
                 }
@@ -97,10 +97,17 @@ public class DeleteProcessor implements Runnable{
                 }
                 else{
                     try {
-                        message = this.node.getNodeId() + " DELETE-> I " + deleted_str + ". I was the last of my list so sending it back to the closest: " + activeNodesSorted.get(0);
-                        //System.out.println(message);
-                        writer.println(message);
-                        messenger = new MessageSender(activeNodesSorted.get(0), node.getStorePort(), "D " + String.valueOf(nextRep) + " " + key);
+                        MessageSender get_messenger = new MessageSender(activeNodesSorted.get(0), node.getStorePort(), "G " + node.getRETRY_FACTOR() + " " + key);
+                        get_messenger.run();
+                        if(get_messenger.getAnswer().contains("Fetched")){
+                            message = this.node.getNodeId() + " DELETE-> I " + deleted_str + ". I was the last of my list so sending it back to the closest: " + activeNodesSorted.get(0);
+                            //System.out.println(message);
+                            writer.println(message);
+                            messenger = new MessageSender(activeNodesSorted.get(0), node.getStorePort(), "D " + String.valueOf(nextRep) + " " + key);
+                        }
+                        else{
+                            message = this.node.getNodeId() + " DELETE-> Pair not found to begin with";
+                        }
                     } catch (UnknownHostException e) {
                         throw new RuntimeException(e);
                     }

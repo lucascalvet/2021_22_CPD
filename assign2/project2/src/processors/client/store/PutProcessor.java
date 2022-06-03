@@ -15,15 +15,17 @@ public class PutProcessor implements Runnable{
     private int replicationFactor;
     private MessageSender messenger = null;
     private final String key;
+    private final boolean force;
     private final Socket socket;
     private final PrintWriter writer;
     private String message = "";
 
-    public PutProcessor(Node node, String opArg, int replicationFactor, Socket socket) throws IOException {
+    public PutProcessor(Node node, String opArg, int replicationFactor, boolean force, Socket socket) throws IOException {
         this.node = node;
         this.replicationFactor = replicationFactor;
         this.value = opArg;
         this.key = this.node.getKey(this.value);
+        this.force = force;
         this.socket = socket;
         this.writer = new PrintWriter(socket.getOutputStream(), true);
 
@@ -42,13 +44,17 @@ public class PutProcessor implements Runnable{
         String store_str = "didn't store (already had the pair stored)";
         if(activeNodesSorted.size() > 0 && replicationFactor == -1){
             if(activeNodesSorted.get(0).equals(node.getNodeId())){
+                int nextRep = node.getREPLICATION_FACTOR();
                 if(!node.isAvailable(key)){
                     store_str = "stored the pair";
                     //System.out.println("PP Stored");
                     node.storePair(value);
+                    nextRep -= 1;
                 }
                 if(activeNodesSorted.size() > 1){
-                    int nextRep = node.getREPLICATION_FACTOR() - 1;
+                    if(!force && nextRep == node.getREPLICATION_FACTOR()){
+                        nextRep -= 1;
+                    }
                     try {
                         message = node.getNodeId() + " PUT-> I was the closest and " + store_str + ". Sending to the next one: " + activeNodesSorted.get(1);
                         //System.out.println(message);
@@ -76,9 +82,12 @@ public class PutProcessor implements Runnable{
         else if(replicationFactor > 0){
             int nextRep = replicationFactor;
             if(!node.isAvailable(key)){
-                //System.out.println("PP Stored");
+                System.out.println("DEBUG PP Stored");
                 store_str = "stored the pair";
                 node.storePair(value);
+                nextRep -= 1;
+            }
+            if(!force && nextRep == replicationFactor){
                 nextRep -= 1;
             }
             if(nextRep > 0){
@@ -110,7 +119,7 @@ public class PutProcessor implements Runnable{
                             message = node.getNodeId() + " PUT-> I " + store_str + ". I was the last of my list so sending it back to the closest: " + activeNodesSorted.get(0);
                             //System.out.println(message);
                             writer.println(message);
-                            messenger = new MessageSender(activeNodesSorted.get(0), node.getStorePort(), "P " + String.valueOf(nextRep - 1) + " " + value);
+                            messenger = new MessageSender(activeNodesSorted.get(0), node.getStorePort(), "P " + String.valueOf(nextRep) + " " + value);
                         } catch (UnknownHostException e) {
                             throw new RuntimeException(e);
                         }
@@ -118,7 +127,7 @@ public class PutProcessor implements Runnable{
                 }
             }
             else{
-                if(node.isAvailable(key)){
+                if(!node.isAvailable(key)){
                     message = node.getNodeId() + " PUT-> I stored the pair and all pairs are now stored";
                 }
                 else{
