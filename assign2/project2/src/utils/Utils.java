@@ -233,19 +233,16 @@ public class Utils {
 
     public static int updateLogs(String nodeId, Integer counter, String hashedId) {
         Map<String, Integer> logs = readLogs(hashedId);
-        System.out.println("read logs");
         File logFile = new File(BASE_DIR + hashedId + File.separator + "membership_log.txt");
 
         if (logs.containsKey(nodeId)) {
             if (logs.get(nodeId) < counter) {
                 logs.remove(nodeId);
                 logs.put(nodeId, counter);
-                System.out.println("updated log");
             }
         }
         else {
             logs.put(nodeId, counter);
-            System.out.println("added new log");
         }
         writeLogs(logs, logFile);
         return 0;

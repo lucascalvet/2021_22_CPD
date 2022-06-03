@@ -4,7 +4,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface MembershipRmi extends Remote {
-    void join() throws RemoteException;
+    String join() throws RemoteException;
 
-    void leave() throws RemoteException;
+    String leave() throws RemoteException;
 }

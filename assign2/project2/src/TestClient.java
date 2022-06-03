@@ -9,6 +9,8 @@ import java.net.UnknownHostException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -38,22 +40,26 @@ public class TestClient {
         op = args[1];
 
         if (op.equals("leave") || op.equals("join")) {
-            String[] apParts = args[0].split(":");
+            String ip = args[0];
 
-            String ip = apParts[0];
-            String rmiName = apParts[1];
-
-            MembershipRmi rmiStub = (MembershipRmi) Naming.lookup("rmi://" + ip + "/" + rmiName);
-
-            switch (op) {
-                case "join":
-                    rmiStub.join();
-                    break;
-                case "leave":
-                    rmiStub.leave();
-                    break;
-                default:
-                    break;
+            try {
+                Registry registry = LocateRegistry.getRegistry(ip);
+                MembershipRmi stub = (MembershipRmi) registry.lookup(ip);
+                String response = null;
+                switch (op) {
+                    case "join":
+                        response = stub.join();
+                        break;
+                    case "leave":
+                        response = stub.leave();
+                        break;
+                    default:
+                        break;
+                }
+                System.out.println(response);
+            } catch (Exception e) {
+                System.err.println("Client exception: " + e.getMessage());
+                e.printStackTrace();
             }
         } else {
             // parse node_ap <ip:port>

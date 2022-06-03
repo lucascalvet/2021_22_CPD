@@ -2,6 +2,8 @@ package protocol;
 
 import processors.client.membership.JoinProcessor;
 import processors.client.membership.LeaveProcessor;
+import processors.client.membership.RMIProcessor;
+import processors.client.membership.ReconnectProcessor;
 import processors.client.store.DeleteProcessor;
 import processors.client.store.GetProcessor;
 import processors.client.store.PutProcessor;
@@ -12,25 +14,45 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.ExecutorService;
 
-public class StorageProtocol implements Runnable, MembershipRmi {
-    private Node node = null;
+public class StorageProtocol implements Runnable {
+    private final Node node;
     private final ExecutorService threadPool;
-    private final MembershipNode membershipNode = new MembershipNode(this.node);
-    private Socket socket;
+    private final MembershipNode membershipNode;
 
     StorageProtocol(Node node) {
         this.node = node;
         this.threadPool = this.node.getThreadPool();
+        this.membershipNode = new MembershipNode(this.node);
     }
 
     public void run() {
-        MembershipNode membershipNode = new MembershipNode(this.node);
-        Thread multicastThread = new Thread(membershipNode, "Multicast Thread");
-
         if (node.getCounter() % 2 == 0) {
-            multicastThread.start();
+            new Thread(membershipNode, "Multicast Thread").start();
+        }
+
+        RMIProcessor rmiProcessor = new RMIProcessor(node, membershipNode);
+
+        try {
+            MembershipRmi stub = (MembershipRmi) UnicastRemoteObject.exportObject(rmiProcessor, 0);
+
+            // Bind the remote object's stub in the registry
+            Registry registry;
+            try {
+                registry = LocateRegistry.createRegistry(1099);
+            } catch (RemoteException e) {
+                registry = LocateRegistry.getRegistry(node.getNodeId());
+            }
+            registry.rebind(node.getNodeId(), stub);
+
+            System.err.println("RMI server ready");
+        } catch (Exception e) {
+            System.err.println("RMI server exception: " + e.getMessage());
+            e.printStackTrace();
         }
 
         try (ServerSocket serverSocket = new ServerSocket(node.getStorePort(), 50, node.getAddress())) {
@@ -38,7 +60,7 @@ public class StorageProtocol implements Runnable, MembershipRmi {
             System.out.println("NodeID: " + node.getNodeId());
 
             while (true) {
-                this.socket = serverSocket.accept();
+                Socket socket = serverSocket.accept();
                 System.out.println("Accepted New Socket");
 
                 InputStream input = socket.getInputStream();
@@ -48,8 +70,8 @@ public class StorageProtocol implements Runnable, MembershipRmi {
                 OutputStream output = socket.getOutputStream();
                 PrintWriter writer = new PrintWriter(output, true);
                 String opArg = null;
-                String op = null;
-                String[] commands = null;
+                String op;
+                String[] commands;
                 int factor = -1;
 
                 if (commandLine.length() == 0) {
@@ -102,21 +124,18 @@ public class StorageProtocol implements Runnable, MembershipRmi {
                     case "delete":
                         this.threadPool.execute(new DeleteProcessor(this.node, opArg, factor, socket));
                         break;
-                        /*
                     case "join":
-                        this.threadPool.execute(new JoinProcessor(this.node, socket, multicastThread));
+                        this.threadPool.execute(new JoinProcessor(this.node, membershipNode, socket));
                         break;
                     case "leave":
-                        this.threadPool.execute(new LeaveProcessor(this.node, socket, membershipNode));
+                        this.threadPool.execute(new LeaveProcessor(this.node, membershipNode, socket));
                         break;
-                         */
                     default:
                         writer.println("Invalid Op");
                 }
 
                 if (node.getNeedsReconnect()) {
-                    this.threadPool.execute(new LeaveProcessor(this.node, socket, membershipNode));
-                    this.threadPool.execute(new JoinProcessor(this.node, socket, multicastThread));
+                    this.threadPool.execute(new ReconnectProcessor(this.node, membershipNode));
                 }
             }
 
@@ -125,16 +144,5 @@ public class StorageProtocol implements Runnable, MembershipRmi {
             ex.printStackTrace();
         }
         this.threadPool.shutdown();
-    }
-
-    @Override
-    public void leave() throws RemoteException {
-        this.threadPool.execute(new LeaveProcessor(this.node, socket, membershipNode));
-    }
-
-    @Override
-    public void join() throws RemoteException {
-        Thread multicastThread = new Thread(membershipNode, "Multicast Thread");
-        this.threadPool.execute(new JoinProcessor(this.node, socket, multicastThread));
     }
 }

@@ -114,7 +114,7 @@ public class MembershipNode implements Runnable {
                     continue;
                 }
 
-                System.out.println("Received:\n" + received + "\n");
+                System.out.println("Received " + msgId + " message.");
 
                 switch (msgId) {
                     // receives a J message
