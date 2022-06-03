@@ -3,6 +3,7 @@ package processors.client;
 import utils.MessageSender;
 import utils.Utils;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -33,8 +34,8 @@ public class GetProcessor implements Runnable{
     }
 
     public void run(){
-        if(Utils.fileExists(hashedId + "\\storage\\" + key + ".txt") && !Utils.getFileContent(hashedId + "\\storage\\" + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
-            String value = Utils.getFileContent(hashedId + "\\storage\\" + key + ".txt");
+        if(Utils.fileExists(hashedId + File.separator +"storage" + File.separator + key + ".txt") && !Utils.getFileContent(hashedId + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
+            String value = Utils.getFileContent(hashedId + File.separator +"storage" + File.separator + key + ".txt");
             message = nodeId + " GET-> Value Fetched: " + value;
             //System.out.println(message);
             //writer.println(message);
@@ -68,9 +69,11 @@ public class GetProcessor implements Runnable{
         if (messenger != null){
             messenger.run();
             writer.println(messenger.getAnswer());
+            System.out.println("ANS:\n" + messenger.getAnswer() + "\n---");
         }
         else{
             writer.println(message + "\n" + Utils.MSG_END_SERVICE);
+            System.out.println("ANS:\n" + message + "\n" + Utils.MSG_END_SERVICE + "\n---");
         }
     }
 }

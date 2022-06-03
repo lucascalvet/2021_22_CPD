@@ -36,7 +36,6 @@ public class MessageSender implements Runnable{
             }
             //this.answer += "\n" + Utils.MSG_END_SERVICE;
             this.answer += "\n" + Utils.MSG_END_SERVICE;
-            System.out.println("ANS: " + answer);
             input.close();
             writer.close();
             output.close();

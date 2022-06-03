@@ -3,6 +3,7 @@ package processors.client;
 import utils.MessageSender;
 import utils.Utils;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
@@ -35,8 +36,8 @@ public class PutProcessor implements Runnable{
         this.nodeId = nodeId;
         this.key = Utils.encodeToHex(value);
         this.hashedId = Utils.encodeToHex(nodeId);
-        this.exists = Utils.fileExists(hashedId + "\\storage\\" + key + ".txt");
-        this.store = !exists || Utils.getFileContent(hashedId + "\\storage\\" + key + ".txt").equals(Utils.MSG_TOMBSTONE);
+        this.exists = Utils.fileExists(hashedId + File.separator +"storage" + File.separator + key + ".txt");
+        this.store = !exists || Utils.getFileContent(hashedId + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE);
         this.socket = socket;
         this.writer = new PrintWriter(socket.getOutputStream(), true);
 
@@ -57,7 +58,7 @@ public class PutProcessor implements Runnable{
             if(activeNodesSorted.get(0).equals(nodeId)){
                 if(store){
                     //System.out.println("PP Stored");
-                    Utils.writeToFile(hashedId + "\\storage\\" + key + ".txt", value, !exists);
+                    Utils.writeToFile(hashedId + File.separator +"storage" + File.separator + key + ".txt", value, !exists);
                 }
                 while(activeNodesSorted.size() < 2){
                     activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
@@ -97,7 +98,7 @@ public class PutProcessor implements Runnable{
             if(store){
                 //System.out.println("PP Stored");
                 store_str = "stored the pair";
-                Utils.writeToFile(hashedId + "\\storage\\" + key + ".txt", value, !exists);
+                Utils.writeToFile(hashedId + File.separator +"storage" + File.separator + key + ".txt", value, !exists);
             }
             nextRep -= 1;
             if(nextRep > 0){
@@ -146,9 +147,11 @@ public class PutProcessor implements Runnable{
         if (messenger != null){
             messenger.run();
             writer.println(messenger.getAnswer());
+            System.out.println("ANS:\n" + messenger.getAnswer() + "\n---");
         }
         else{
             writer.println(message + "\n" + Utils.MSG_END_SERVICE);
+            System.out.println("ANS:\n" + message + "\n" + Utils.MSG_END_SERVICE + "\n---");
         }
     }
 }

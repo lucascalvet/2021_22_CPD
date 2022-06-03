@@ -4,6 +4,7 @@ import utils.MessageSender;
 import utils.Utils;
 
 import javax.swing.*;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -42,17 +43,17 @@ public class DeleteProcessor implements Runnable{
         boolean deleted = false;
         List<String> activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
         int nextRep = replicationFactor;
-        if(Utils.fileExists(hashedId + "\\storage\\" + key + ".txt")){
+        if(Utils.fileExists(hashedId + File.separator + "storage" + File.separator + key + ".txt")){
             nextRep -= 1;
             //System.out.println("DP FileExists");
-            if(!Utils.getFileContent(hashedId + "\\storage\\" + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
-                if(Utils.writeToFile(hashedId + "\\storage\\" + key + ".txt", Utils.MSG_TOMBSTONE, false)){
+            if(!Utils.getFileContent(hashedId + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
+                if(Utils.writeToFile(hashedId + File.separator + "storage" + File.separator + key + ".txt", Utils.MSG_TOMBSTONE, false)){
                     deleted = true;
                     //System.out.println("DP TombStoned!");
                     //writer.println("Pair successfully deleted!");
                 }
                 /*
-                if(Utils.deleteFile(hashedId + "\\storage\\" + key + ".txt")){
+                if(Utils.deleteFile(hashedId + File.separator + "storage" + File.separator + key + ".txt")){
                     writer.println("Pair successfully deleted!");
                 }
                 */
@@ -115,9 +116,11 @@ public class DeleteProcessor implements Runnable{
         if (messenger != null){
             messenger.run();
             writer.println(messenger.getAnswer());
+            System.out.println("ANS:\n" + messenger.getAnswer() + "\n---");
         }
         else{
             writer.println(message + "\n" + Utils.MSG_END_SERVICE);
+            System.out.println("ANS:\n" + message + "\n" + Utils.MSG_END_SERVICE + "\n---");
         }
     }
 }
