@@ -6,6 +6,8 @@ import java.io.File;
 import java.net.*;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Node {
     private final InetAddress multicastAddr;
@@ -18,6 +20,9 @@ public class Node {
     private final int RETRY_FACTOR = 3;
     private static final String MSG_TOMBSTONE = "TOMBSTONE";
 
+    private boolean needsReconnect;
+    private final ExecutorService threadPool;
+
     public Node(InetAddress multicastAddr, Integer multicastPort, String nodeId, Integer storePort) throws UnknownHostException {
         System.out.println("Creating filesystem directory: " + new File(Utils.BASE_DIR).mkdirs());
         this.multicastAddr = multicastAddr;
@@ -26,8 +31,12 @@ public class Node {
         this.hashedId = Utils.encodeToHex(nodeId);
         this.nodeAddress = InetAddress.getByName(nodeId);
         this.storePort = storePort;
+        int threadCount = Runtime.getRuntime().availableProcessors();
+        this.needsReconnect = false;
+        this.threadPool = Executors.newFixedThreadPool(threadCount);
+        System.out.println(Thread.currentThread().getName() + ": Created thread pool with " + threadCount + " threads");
         this.createDirectories();
-        this.setCounter();
+        this.initCounter();
     }
 
     public int getREPLICATION_FACTOR(){return REPLICATION_FACTOR;}
@@ -66,11 +75,23 @@ public class Node {
 
     public File getStorageDir(){return new File(Utils.BASE_DIR + getHashedId() + File.separator + "storage");}
 
-    private String getFileRelativePath(String key, boolean tombstoned){
-        if(tombstoned){
+    private String getFileRelativePath(String key, boolean tombstoned) {
+        if (tombstoned) {
             key = getMSG_TOMBSTONE() + key;
         }
         return getHashedId() + File.separator + "storage" + File.separator + key + ".txt";
+    }
+
+    public boolean getNeedsReconnect() {
+        return needsReconnect;
+    }
+
+    public synchronized void setNeedsReconnect(boolean needsReconnect) {
+        this.needsReconnect = needsReconnect;
+    }
+
+    public ExecutorService getThreadPool(){
+        return threadPool;
     }
 
     public void createDirectories(){
@@ -98,6 +119,13 @@ public class Node {
         }
     }
 
+    public synchronized void initCounter() {
+        Map<String, Integer> logs = Utils.readLogs(this.getHashedId());
+        if (!logs.containsKey(this.nodeId)) {
+            Utils.updateLogs(this.nodeId, -1, this.hashedId);
+        }
+    }
+
     public synchronized void addLog(String nodeId, int counter) {
         System.out.println("Adding " + nodeId + " " + counter + " to the membership log.");
         Utils.updateLogs(nodeId, counter, this.hashedId);
@@ -107,13 +135,17 @@ public class Node {
         return Utils.getNLogLines(this.hashedId, 32);
     }
 
+    public synchronized String get32OrMoreLogs() {
+        return Utils.getNOrMoreLogLines(this.hashedId, 32);
+    }
+
     public synchronized void setAllLogs(Map<String, Integer> logs) {
         logs.put(this.nodeId, this.getCounter());
         Utils.setAllLogs(logs, this.hashedId);
     }
 
-    public synchronized void updateAllLogs(Map<String, Integer> logs) {
-        Utils.updateAllLogs(logs, this.hashedId);
+    public synchronized List<Boolean> updateAllLogs(Map<String, Integer> logs) {
+        return Utils.updateAllLogs(logs, this.hashedId);
     }
 
     public synchronized boolean storePair(String value) {

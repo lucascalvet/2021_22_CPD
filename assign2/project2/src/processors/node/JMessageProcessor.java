@@ -66,7 +66,7 @@ public class JMessageProcessor implements Runnable{
 
         node.addLog(nodeId, counter);
 
-        // wait for a random time from 0 to 3 secs
+        // wait for a random time from 0 to 1 secs
         try {
             Thread.sleep((long) (Math.random() * 1000));
         } catch (InterruptedException e) {
@@ -75,7 +75,7 @@ public class JMessageProcessor implements Runnable{
 
         // send the 32 most recent logs
         try (Socket socket = new Socket(InetAddress.getByName(nodeId), port)) {
-            String toSend = node.get32Logs();
+            String toSend = node.get32OrMoreLogs();
             System.out.println("Sending last 32 logs to " + socket.getInetAddress().getHostName());
             String message = "M " + node.getNodeId() + "\n" + toSend + "end";
 

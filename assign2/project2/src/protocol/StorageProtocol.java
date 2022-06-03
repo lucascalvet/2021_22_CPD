@@ -19,13 +19,16 @@ public class StorageProtocol implements Runnable {
 
     StorageProtocol(Node node) throws UnknownHostException {
         this.node = node;
-        int threadCount = Runtime.getRuntime().availableProcessors();
-        threadPool = Executors.newFixedThreadPool(threadCount);
-        System.out.println(Thread.currentThread().getName() + ": Created thread pool with " + threadCount + " threads");
+        this.threadPool = this.node.getThreadPool();
     }
 
     public void run() {
         MembershipNode membershipNode = new MembershipNode(this.node);
+        Thread multicastThread = new Thread(membershipNode, "Multicast Thread");
+
+        if (node.getCounter() % 2 == 0) {
+            multicastThread.start();
+        }
 
         try (ServerSocket serverSocket = new ServerSocket(node.getStorePort(), 50, node.getAddress())) {
             System.out.println("Server is listening on port " + node.getStorePort());
@@ -97,7 +100,6 @@ public class StorageProtocol implements Runnable {
                         this.threadPool.execute(new DeleteProcessor(this.node, opArg, factor, socket));
                         break;
                     case "join":
-                        Thread multicastThread = new Thread(membershipNode, "Multicast Thread");
                         this.threadPool.execute(new JoinProcessor(this.node, socket, multicastThread));
                         break;
                     case "leave":
@@ -105,6 +107,11 @@ public class StorageProtocol implements Runnable {
                         break;
                     default:
                         writer.println("Invalid Op");
+                }
+
+                if (node.getNeedsReconnect()) {
+                    this.threadPool.execute(new LeaveProcessor(this.node, socket, membershipNode));
+                    this.threadPool.execute(new JoinProcessor(this.node, socket, multicastThread));
                 }
             }
 
