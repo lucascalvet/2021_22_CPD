@@ -46,6 +46,7 @@
 
 package protocol;
 
+import processors.client.membership.MembershipProcessor;
 import processors.node.JMessageProcessor;
 import processors.node.LMessageProcessor;
 import processors.node.MMessageProcessor;
@@ -55,6 +56,8 @@ import java.net.DatagramPacket;
 import java.net.MulticastSocket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class MembershipNode implements Runnable {
     private final Node node;
@@ -63,14 +66,17 @@ public class MembershipNode implements Runnable {
 
     MembershipNode(Node node) {
         this.node = node;
-        int threadCount = Runtime.getRuntime().availableProcessors();
-        threadPool = Executors.newFixedThreadPool(threadCount);
-        System.out.println(Thread.currentThread().getName() + ": Created thread pool with " + threadCount + " threads");
-        exit = false;
+        this.threadPool = this.node.getThreadPool();
+        this.exit = false;
     }
 
     public void run() {
         MulticastSocket socket = null;
+        this.exit = false;
+
+        MembershipProcessor membershipProcessor = new MembershipProcessor(this.node);
+        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+        scheduledExecutorService.scheduleAtFixedRate(membershipProcessor, 0, 1, TimeUnit.SECONDS);
 
         try {
             socket = new MulticastSocket(node.getMulticastPort());
@@ -94,7 +100,7 @@ public class MembershipNode implements Runnable {
 
                 char msgId = received.charAt(0);
 
-                String[] message = received.split("\\s+");
+                String[] message = received.split("\n")[0].split("\\s+");
                 String nodeId;
                 int counter, port;
 
@@ -108,7 +114,7 @@ public class MembershipNode implements Runnable {
                     continue;
                 }
 
-                System.out.println("Received: " + received);
+                System.out.println("Received:\n" + received + "\n");
 
                 switch (msgId) {
                     // receives a J message
@@ -140,16 +146,20 @@ public class MembershipNode implements Runnable {
                             counter = Integer.parseInt(message[2]);
                         }
                         catch (NumberFormatException e) {
-                            System.out.println("Wrong leave message length! Skipping...");
+                            System.out.println("Error parsing leave message! Skipping...");
                             continue;
                         }
 
                         this.threadPool.execute(new LMessageProcessor(node, nodeId, counter));
                         break;
                     // receives a M message
-                    case 'U':
-                        // TODO: missing getting/parsing membership logs
-                        this.threadPool.execute(new MMessageProcessor(node, received));
+                    case 'M':
+                        if (message.length != 2) {
+                            System.out.println("Wrong membership message length! Skipping...");
+                            continue;
+                        }
+                        membershipProcessor.resetSilenceCounter();
+                        this.threadPool.execute(new MMessageProcessor(node, nodeId, received, membershipProcessor));
                         break;
                     // ignore wrong messages
                     default:
@@ -157,6 +167,8 @@ public class MembershipNode implements Runnable {
                         continue;
                 }
             }
+            scheduledExecutorService.shutdown();
+
             System.out.println("Stopped hearing multicast messages.");
 
         } catch (Exception e) {
@@ -168,12 +180,10 @@ public class MembershipNode implements Runnable {
             }
 
             socket.close();
-            this.threadPool.shutdown();
         }
     }
 
     public void stop() {
-        this.threadPool.shutdown();
         this.exit = true;
     }
 }

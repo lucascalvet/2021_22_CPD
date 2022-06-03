@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Utils {
     public final static String BASE_DIR = "filesystem" + File.separator;
@@ -174,8 +175,31 @@ public class Utils {
         return logs.toString();
     }
 
+    public static String getNOrMoreLogLines(String hashedId, int n) {
+        String line;
+        StringBuilder logs = new StringBuilder();
+        int activeCounter = 0;
+        File membershipLog = new File(BASE_DIR + hashedId + File.separator + "membership_log.txt");
+        try {
+            FileReader fr = new FileReader(membershipLog);
+            BufferedReader br = new BufferedReader(fr);
+            int activeMembers = getActiveMembers(hashedId).size();
+            while ((line = br.readLine()) != null && (n > 0 || activeMembers > activeCounter)) {
+                String[] splited = line.split("\\s+");
+                if (splited.length == 2 && Integer.parseInt(splited[1]) % 2 == 0) {
+                        activeCounter++;
+                }
+                logs.append(line).append("\n");
+                n--;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return logs.toString();
+    }
+
     public static Map<String, Integer> readLogs(String hashedId) {
-        Map<String, Integer> nodes = new HashMap<String, Integer>();
+        Map<String, Integer> nodes = new LinkedHashMap<>();
         String line;
         File membershipLog = new File(BASE_DIR + hashedId + File.separator + "membership_log.txt");
         try {
@@ -216,6 +240,7 @@ public class Utils {
 
         if (logs.containsKey(nodeId)) {
             if (logs.get(nodeId) < counter) {
+                logs.remove(nodeId);
                 logs.put(nodeId, counter);
                 System.out.println("updated log");
             }
@@ -240,7 +265,11 @@ public class Utils {
 
     }
 
-    public static void updateAllLogs(Map<String, Integer> newLogs, String hashedId) {
+    public static List<Boolean> updateAllLogs(Map<String, Integer> newLogs, String hashedId) {
+        AtomicBoolean updatedLog = new AtomicBoolean(false);
+        AtomicBoolean gotOldLog = new AtomicBoolean(false);
+        AtomicBoolean updatedAll = new AtomicBoolean(true);
+
         Map<String, Integer> currentLogs = readLogs(hashedId);
 
         File logFile = new File(BASE_DIR + hashedId + File.separator + "membership_log.txt");
@@ -251,7 +280,14 @@ public class Utils {
         newLogs.forEach((key, value) -> {
             if (currentLogs.containsKey(key)) {
                 if (currentLogs.get(key) < value) {
+                    currentLogs.remove(key);
                     currentLogs.put(key, value);
+                    updatedLog.set(true);
+                } else {
+                    updatedAll.set(false);
+                }
+                if (currentLogs.get(key) > value) {
+                    gotOldLog.set(true);
                 }
             } else {
                 currentLogs.put(key, value);
@@ -259,6 +295,8 @@ public class Utils {
         });
 
         writeLogs(currentLogs, logFile);
+
+        return Arrays.asList(updatedLog.get(), gotOldLog.get(), updatedAll.get());
     }
 
     private static void writeLogs(Map<String, Integer> logs, File logFile) {
