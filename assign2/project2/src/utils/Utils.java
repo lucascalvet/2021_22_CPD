@@ -11,8 +11,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class Utils {
-    private final static String BASE_DIR = "src" + File.separator + "filesystem" + File.separator;
-    private static final int HASH_BITS_SIZE = 256;
+    public final static String BASE_DIR = "filesystem" + File.separator;
     public static final String MSG_END = "\nEND";
     public static final String MSG_TOMBSTONE = "TOMBSTONE";
     public static final String MSG_END_SERVICE = "END OF SERVICE";
@@ -41,7 +40,7 @@ public class Utils {
         return digest.digest(originalString.getBytes(StandardCharsets.UTF_8));
     }
 
-    public static String encodeToHex(String originalString){
+    public static String encodeToHex(String originalString) {
         return bytesToHex(encode(originalString.replaceAll("\r", "")));
     }
 
@@ -137,11 +136,10 @@ public class Utils {
     public static boolean makeDir(String relativePath) {
         String dirPath = BASE_DIR + relativePath;
         File dir = new File(dirPath);
-        deleteDir(dir);
         return dir.mkdir();
     }
 
-    public static boolean writeToFile(String relativePath, String content, boolean create) {
+    public static boolean writeToFile(String relativePath, String content) {
         String filePath = BASE_DIR + relativePath;
         Path currentRelativePath = Paths.get("");
         String s = currentRelativePath.toAbsolutePath().toString();
@@ -149,12 +147,8 @@ public class Utils {
         System.out.println("FP: " + filePath);
         File newFile = new File(filePath);
         try {
-            if (create) {
-                if (!newFile.createNewFile()) {
-                    return false;
-                }
-            }
-            FileWriter writer = new FileWriter(newFile);
+            newFile.createNewFile();
+            FileWriter writer = new FileWriter(newFile, false);
             writer.write(content);
             writer.close();
         } catch (IOException e) {
@@ -185,6 +179,7 @@ public class Utils {
         String line;
         File membershipLog = new File(BASE_DIR + hashedId + File.separator + "membership_log.txt");
         try {
+            if (membershipLog.createNewFile()) return nodes;
             FileReader fr = new FileReader(membershipLog);
             BufferedReader br = new BufferedReader(fr);
             while ((line = br.readLine()) != null) {
@@ -203,7 +198,7 @@ public class Utils {
         Map<String, Integer> nodes = readLogs(hashedId);
         List<String> activeNodes = new ArrayList<>();
         for (Map.Entry<String, Integer> node : nodes.entrySet()) {
-            if(!activeNodes.contains(node) && node.getValue() % 2 == 0){
+            if (!activeNodes.contains(node) && node.getValue() % 2 == 0) {
                 activeNodes.add(node.getKey());
             }
         }
@@ -216,57 +211,58 @@ public class Utils {
 
     public static int updateLogs(String nodeId, Integer counter, String hashedId) {
         Map<String, Integer> logs = readLogs(hashedId);
+        System.out.println("read logs");
+        File logFile = new File(BASE_DIR + hashedId + File.separator + "membership_log.txt");
+
+        if (logs.containsKey(nodeId)) {
+            if (logs.get(nodeId) < counter) {
+                logs.put(nodeId, counter);
+                System.out.println("updated log");
+            }
+        }
+        else {
+            logs.put(nodeId, counter);
+            System.out.println("added new log");
+        }
+        writeLogs(logs, logFile);
+        return 0;
+    }
+
+    public static void setAllLogs(Map<String, Integer> logs, String hashedId) {
+        Map<String, Integer> currentLogs = readLogs(hashedId);
+
         File logFile = new File(BASE_DIR + hashedId + File.separator + "membership_log.txt");
 
         // open file
         FileWriter writer = null;
 
-        // check if log already exists, and if it does, update the counter
-        if (!logs.isEmpty()) {
-            if (logs.containsKey(nodeId)) {
-                if (!logs.get(nodeId).equals(counter)) {
-                    logs.put(nodeId, counter);
-                }
+        writeLogs(logs, logFile);
 
-                try {
-                    writer = new FileWriter(logFile, false);
-
-                    FileWriter finalWriter = writer;
-                    logs.forEach((key, value) -> {
-                        String log = key + " " + value + "\n";
-                        try {
-                            finalWriter.write(log);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-
-                    writer.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-        // if it does not exist, add log
-        else {
-            String log = nodeId + " " + counter;
-            try {
-                writer = new FileWriter(logFile, true);
-                writer.write(log);
-                writer.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return 0;
     }
 
-    public static void updateAllLogs(Map<String, Integer> logs, String hashedId){
-        File logFile = new File(BASE_DIR + hashedId + "\\membership_log.txt");
+    public static void updateAllLogs(Map<String, Integer> newLogs, String hashedId) {
+        Map<String, Integer> currentLogs = readLogs(hashedId);
+
+        File logFile = new File(BASE_DIR + hashedId + File.separator + "membership_log.txt");
 
         // open file
         FileWriter writer = null;
 
+        newLogs.forEach((key, value) -> {
+            if (currentLogs.containsKey(key)) {
+                if (currentLogs.get(key) < value) {
+                    currentLogs.put(key, value);
+                }
+            } else {
+                currentLogs.put(key, value);
+            }
+        });
+
+        writeLogs(currentLogs, logFile);
+    }
+
+    private static void writeLogs(Map<String, Integer> logs, File logFile) {
+        FileWriter writer;
         try {
             writer = new FileWriter(logFile, false);
 
@@ -284,6 +280,5 @@ public class Utils {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
     }
 }

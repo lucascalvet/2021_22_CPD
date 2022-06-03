@@ -44,7 +44,7 @@ public class DeleteProcessor implements Runnable{
             nextRep -= 1;
             //System.out.println("DP FileExists");
             if(!Utils.getFileContent(hashedId + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
-                if(Utils.writeToFile(hashedId + File.separator + "storage" + File.separator + key + ".txt", Utils.MSG_TOMBSTONE, false)){
+                if(Utils.writeToFile(hashedId + File.separator + "storage" + File.separator + key + ".txt", Utils.MSG_TOMBSTONE)){
                     deleted = true;
                     //System.out.println("DP TombStoned!");
                     //writer.println("Pair successfully deleted!");

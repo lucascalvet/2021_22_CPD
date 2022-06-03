@@ -74,17 +74,23 @@ public class MembershipNode implements Runnable {
 
         try {
             socket = new MulticastSocket(node.getMulticastPort());
-            byte[] buf = new byte[1024];
+            byte[] buf = new byte[4096];
             socket.joinGroup(node.getMulticastAddr());
+            System.out.println("Hearing on multicast address " + node.getMulticastAddr() + " port " + node.getMulticastPort());
 
             while (!exit) {
                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
                 socket.receive(packet);
+                //System.out.println("Got multicast message from " + packet.getAddress() + ". Node address is " + node.getAddress());
                 if (exit) break;
                 String received = new String(
                         packet.getData(), packet.getOffset(), packet.getLength());
 
-                if (received.isEmpty()) continue;
+
+                if (received.isEmpty()) {
+                    System.out.println("Received empty multicast message.");
+                    continue;
+                }
 
                 char msgId = received.charAt(0);
 
@@ -92,14 +98,24 @@ public class MembershipNode implements Runnable {
                 String nodeId;
                 int counter, port;
 
+                if (message.length < 2) {
+                    continue;
+                }
+
+                nodeId = message[1];
+
+                if (nodeId.equals(node.getNodeId())) {
+                    continue;
+                }
+
+                System.out.println("Received: " + received);
+
                 switch (msgId) {
                     // receives a J message
                     case 'J':
                         if (message.length != 4) {
                             continue;
                         }
-
-                        nodeId = message[1];
 
                         try {
                             counter = Integer.parseInt(message[2]);
@@ -117,7 +133,6 @@ public class MembershipNode implements Runnable {
                             continue;
                         }
 
-                        nodeId = message[1];
                         try {
                             counter = Integer.parseInt(message[2]);
                         }
@@ -129,15 +144,15 @@ public class MembershipNode implements Runnable {
                         break;
                     // receives a M message
                     case 'U':
-                        nodeId = message[1];
                         // TODO: missing getting/parsing membership logs
-                        this.threadPool.execute(new UMessageProcessor(nodeId));
+                        this.threadPool.execute(new UMessageProcessor(node, received));
                         break;
                     // ignore wrong messages
                     default:
                         continue;
                 }
             }
+            System.out.println("Stopped hearing multicast messages.");
 
         } catch (Exception e) {
             try {

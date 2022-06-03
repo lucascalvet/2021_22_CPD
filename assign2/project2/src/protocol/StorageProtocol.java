@@ -17,20 +17,18 @@ import java.util.concurrent.Executors;
 
 public class StorageProtocol implements Runnable {
     private final Node node;
-    private final int NTHREADS = 10;
-    private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
-    private Thread runningThread = null;
+    private final ExecutorService threadPool;
 
     StorageProtocol(Node node) throws UnknownHostException {
         this.node = node;
+        int threadCount = Runtime.getRuntime().availableProcessors();
+        threadPool = Executors.newFixedThreadPool(threadCount);
+        System.out.println(Thread.currentThread().getName() + ": Created thread pool with " + threadCount + " threads");
     }
 
     public void run() {
-        synchronized (this) {
-            this.runningThread = Thread.currentThread();
-        }
 
-        MembershipNode membershipNode = new MembershipNode(this.node);;
+        MembershipNode membershipNode = new MembershipNode(this.node);
 
         try (ServerSocket serverSocket = new ServerSocket(node.getStorePort(), 50, node.getAddress())) {
             System.out.println("Server is listening on port " + node.getStorePort());
@@ -103,13 +101,11 @@ public class StorageProtocol implements Runnable {
                         this.threadPool.execute(new DeleteProcessor(node.getNodeId(), opArg, replicationFactor, node.getStorePort(), socket));
                         break;
                     case "join":
-                        this.threadPool.execute(new JoinProcessor(this.node));
                         Thread multicastThread = new Thread(membershipNode, "Multicast Thread");
-                        multicastThread.start();
+                        this.threadPool.execute(new JoinProcessor(this.node, socket, multicastThread));
                         break;
                     case "leave":
-                        this.threadPool.execute(new LeaveProcessor(this.node));
-                        membershipNode.stop();
+                        this.threadPool.execute(new LeaveProcessor(this.node, socket, membershipNode));
                         break;
                     default:
                         writer.println("Invalid Op");
