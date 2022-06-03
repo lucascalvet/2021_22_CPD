@@ -2,9 +2,7 @@ package processors.client.store;
 
 import protocol.Node;
 import utils.MessageSender;
-import utils.Utils;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -35,13 +33,13 @@ public class DeleteProcessor implements Runnable{
 
     public void run(){
         boolean deleted = false;
-        List<String> activeNodesSorted = Utils.getActiveMembersSorted(node.getHashedId(), key);
+        List<String> activeNodesSorted = node.getActiveMembersSorted(key);
         int nextRep = replicationFactor;
-        if(Utils.fileExists(node.getHashedId() + File.separator + "storage" + File.separator + key + ".txt")){
+        if(node.pairExists(key)){
             nextRep -= 1;
             //System.out.println("DP FileExists");
-            if(!Utils.getFileContent(node.getHashedId() + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
-                if(Utils.writeToFile(node.getHashedId() + File.separator + "storage" + File.separator + key + ".txt", Utils.MSG_TOMBSTONE)){
+            if(!node.isTombstone(key)){
+                if(node.tombstone(key)){
                     deleted = true;
                     //System.out.println("DP TombStoned!");
                 }
@@ -73,6 +71,7 @@ public class DeleteProcessor implements Runnable{
             }
         }
         else if (nextRep > 0){
+
             boolean send = false;
             boolean sent = false;
             for(String node : activeNodesSorted){
@@ -117,8 +116,8 @@ public class DeleteProcessor implements Runnable{
             System.out.println("ANS:\n" + messenger.getAnswer() + "\n---");
         }
         else{
-            writer.println(message + "\n" + Utils.MSG_END_SERVICE);
-            System.out.println("ANS:\n" + message + "\n" + Utils.MSG_END_SERVICE + "\n---");
+            writer.println(message + "\n" + node.getMSG_END_SERVICE());
+            System.out.println("ANS:\n" + message + "\n" + node.getMSG_END_SERVICE() + "\n---");
         }
     }
 }

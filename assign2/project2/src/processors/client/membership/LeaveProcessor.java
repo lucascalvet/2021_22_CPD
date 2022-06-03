@@ -1,9 +1,9 @@
 package processors.client.membership;
 
+import processors.node.LeaveTransferProcessor;
 import protocol.Node;
 import utils.MessageSender;
 import protocol.MembershipNode;
-import utils.Utils;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,18 +31,21 @@ public class LeaveProcessor implements Runnable {
     @Override
     public void run() {
         //Storage change before membership message is transmitted
-        File dir = new File(Utils.BASE_DIR + node.getHashedId() + File.separator + "storage");
+        File dir = node.getStorageDir();
         File[] storageListing = dir.listFiles();
         if (storageListing != null) {
             for (File child : storageListing) {
                 String key = child.getName().replaceFirst("[.][^.]+$", "");
-                String value = Utils.getFileContent(node.getHashedId() + File.separator + "storage" + File.separator + child.getName());
-                try {
-                    threadPool.execute(new MessageSender(Utils.getActiveMembersSorted(node.getHashedId(), key).get(0), node.getStorePort(), "P 1 " + value));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+                if(!key.contains(node.getMSG_TOMBSTONE())){
+                    String value = node.getValue(key);
+                    var activeMembersSorted = node.getActiveMembersSorted(key);
+                    if(activeMembersSorted.size() > 0){
+                        threadPool.execute(new LeaveTransferProcessor(node, key));
+                    }
+                    else{
+                        node.tombstone(key);
+                    }
                 }
-                Utils.writeToFile(node.getHashedId() + File.separator + "storage" + File.separator + child.getName(), Utils.MSG_TOMBSTONE);
             }
         }
 
@@ -54,8 +57,8 @@ public class LeaveProcessor implements Runnable {
         }
 
         if (node.getCounter() % 2 != 0) {
-            clientWriter.println("Node isn't joined to any cluster! Aborting.");
-            clientWriter.println(Utils.MSG_END_SERVICE);
+            clientWriter.println(node.getNodeId() + " LEAVE-> Node isn't joined to any cluster! Aborting.");
+            clientWriter.println(node.getMSG_END_SERVICE());
             return;
         }
 
@@ -65,7 +68,7 @@ public class LeaveProcessor implements Runnable {
 
         String info = "Initializing leave process.";
         System.out.println(info);
-        clientWriter.println(info);
+        clientWriter.println(node.getNodeId() + " LEAVE-> " + info);
 
         this.node.setCounter();
 
@@ -91,7 +94,7 @@ public class LeaveProcessor implements Runnable {
 
         info = "Finished leave process.";
         System.out.println(info);
-        clientWriter.println(info);
-        clientWriter.println(Utils.MSG_END_SERVICE);
+        clientWriter.println(node.getNodeId() + " LEAVE-> " + info);
+        clientWriter.println(node.getMSG_END_SERVICE());
     }
 }

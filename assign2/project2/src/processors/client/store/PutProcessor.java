@@ -2,9 +2,7 @@ package processors.client.store;
 
 import protocol.Node;
 import utils.MessageSender;
-import utils.Utils;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -19,17 +17,13 @@ public class PutProcessor implements Runnable{
     private final String key;
     private final Socket socket;
     private final PrintWriter writer;
-    private final boolean exists;
-    private final boolean store;
     private String message = "";
 
     public PutProcessor(Node node, String opArg, int replicationFactor, Socket socket) throws IOException {
         this.node = node;
         this.replicationFactor = replicationFactor;
         this.value = opArg;
-        this.key = Utils.encodeToHex(value);
-        this.exists = Utils.fileExists(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt");
-        this.store = !exists || Utils.getFileContent(node.getHashedId() + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE);
+        this.key = this.node.getKey(this.value);
         this.socket = socket;
         this.writer = new PrintWriter(socket.getOutputStream(), true);
 
@@ -41,17 +35,17 @@ public class PutProcessor implements Runnable{
     }
 
     public void run(){
-        List<String> activeNodesSorted = Utils.getActiveMembersSorted(node.getHashedId(), key);
+        List<String> activeNodesSorted = node.getActiveMembersSorted(key);
         for(int i = 0; i < activeNodesSorted.size(); i++){
             System.out.println("PP AN" + Integer.toString(i) + "->" + activeNodesSorted.get(i));
         }
         String store_str = "didn't store (already had the pair stored)";
-        if(replicationFactor == -1){
+        if(activeNodesSorted.size() > 0 && replicationFactor == -1){
             if(activeNodesSorted.get(0).equals(node.getNodeId())){
-                if(store){
+                if(!node.isAvailable(key)){
                     store_str = "stored the pair";
                     //System.out.println("PP Stored");
-                    Utils.writeToFile(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt", value);
+                    node.storePair(value);
                 }
                 if(activeNodesSorted.size() > 1){
                     int nextRep = node.getREPLICATION_FACTOR() - 1;
@@ -81,12 +75,12 @@ public class PutProcessor implements Runnable{
         }
         else if(replicationFactor > 0){
             int nextRep = replicationFactor;
-            if(store){
+            if(!node.isAvailable(key)){
                 //System.out.println("PP Stored");
                 store_str = "stored the pair";
-                Utils.writeToFile(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt", value);
+                node.storePair(value);
+                nextRep -= 1;
             }
-            nextRep -= 1;
             if(nextRep > 0){
                 boolean send = false;
                 boolean sent = false;
@@ -116,7 +110,7 @@ public class PutProcessor implements Runnable{
                             message = node.getNodeId() + " PUT-> I " + store_str + ". I was the last of my list so sending it back to the closest: " + activeNodesSorted.get(0);
                             //System.out.println(message);
                             writer.println(message);
-                            messenger = new MessageSender(activeNodesSorted.get(0), node.getStorePort(), "P " + String.valueOf(nextRep) + " " + value);
+                            messenger = new MessageSender(activeNodesSorted.get(0), node.getStorePort(), "P " + String.valueOf(nextRep - 1) + " " + value);
                         } catch (UnknownHostException e) {
                             throw new RuntimeException(e);
                         }
@@ -124,7 +118,7 @@ public class PutProcessor implements Runnable{
                 }
             }
             else{
-                if(store){
+                if(node.isAvailable(key)){
                     message = node.getNodeId() + " PUT-> I stored the pair and all pairs are now stored";
                 }
                 else{
@@ -138,8 +132,8 @@ public class PutProcessor implements Runnable{
             System.out.println("ANS:\n" + messenger.getAnswer() + "\n---");
         }
         else{
-            writer.println(message + "\n" + Utils.MSG_END_SERVICE);
-            System.out.println("ANS:\n" + message + "\n" + Utils.MSG_END_SERVICE + "\n---");
+            writer.println(message + "\n" + node.getMSG_END_SERVICE());
+            System.out.println("ANS:\n" + message + "\n" + node.getMSG_END_SERVICE() + "\n---");
         }
     }
 }

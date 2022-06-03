@@ -5,15 +5,14 @@ import processors.client.membership.LeaveProcessor;
 import processors.client.store.DeleteProcessor;
 import processors.client.store.GetProcessor;
 import processors.client.store.PutProcessor;
+
 import rmi.MembershipRmi;
-import utils.Utils;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.rmi.RemoteException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class StorageProtocol implements Runnable, MembershipRmi {
     private Node node = null;
@@ -23,13 +22,16 @@ public class StorageProtocol implements Runnable, MembershipRmi {
 
     StorageProtocol(Node node) {
         this.node = node;
-        int threadCount = Runtime.getRuntime().availableProcessors();
-        threadPool = Executors.newFixedThreadPool(threadCount);
-        System.out.println(Thread.currentThread().getName() + ": Created thread pool with " + threadCount + " threads");
+        this.threadPool = this.node.getThreadPool();
     }
 
     public void run() {
+        MembershipNode membershipNode = new MembershipNode(this.node);
+        Thread multicastThread = new Thread(membershipNode, "Multicast Thread");
 
+        if (node.getCounter() % 2 == 0) {
+            multicastThread.start();
+        }
 
         try (ServerSocket serverSocket = new ServerSocket(node.getStorePort(), 50, node.getAddress())) {
             System.out.println("Server is listening on port " + node.getStorePort());
@@ -64,7 +66,7 @@ public class StorageProtocol implements Runnable, MembershipRmi {
 
                 op = commands[0];
                 if (!(op.equals("join") || op.equals("leave"))) {
-
+                    //Storage Message->"OP factor Value\nEND"
                     //If the first character is P, G or D we know the message is from another node
                     if (commandLine.charAt(0) == 'P' || commandLine.charAt(0) == 'G' || commandLine.charAt(0) == 'D') {
                         commands = commands[1].split("\\s+", 2);
@@ -77,7 +79,7 @@ public class StorageProtocol implements Runnable, MembershipRmi {
                     if (commands.length >= 2) opArg = commands[1];
 
                     String line;
-                    while (!(line = reader.readLine()).equals(Utils.MSG_END.substring(1))) {
+                    while (!(line = reader.readLine()).equals(node.getMSG_END())) {
                         opArg += "\n" + line;
                     }
 
@@ -102,7 +104,6 @@ public class StorageProtocol implements Runnable, MembershipRmi {
                         break;
                         /*
                     case "join":
-                        Thread multicastThread = new Thread(membershipNode, "Multicast Thread");
                         this.threadPool.execute(new JoinProcessor(this.node, socket, multicastThread));
                         break;
                     case "leave":
@@ -111,6 +112,11 @@ public class StorageProtocol implements Runnable, MembershipRmi {
                          */
                     default:
                         writer.println("Invalid Op");
+                }
+
+                if (node.getNeedsReconnect()) {
+                    this.threadPool.execute(new LeaveProcessor(this.node, socket, membershipNode));
+                    this.threadPool.execute(new JoinProcessor(this.node, socket, multicastThread));
                 }
             }
 

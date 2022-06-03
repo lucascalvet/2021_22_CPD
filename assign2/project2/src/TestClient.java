@@ -9,7 +9,9 @@ import java.net.UnknownHostException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 // usage: java TestClient <node_ap> <operation> [<opnd>]
@@ -17,7 +19,9 @@ public class TestClient {
     public static List<String> operations = Arrays.asList("put", "get", "delete", "join", "leave");
     private static String op;
     private static AccessPoint ap;
-    private static String opnd;    private static Integer nArgs;
+    private static String opnd;
+    private static Integer nArgs;
+    private static String CLIENT_LOG_DIRECTORY = "client_logs";
 
     public static void main(String[] args) throws UnknownHostException, MalformedURLException, RemoteException, NotBoundException {
         // parsing arguments
@@ -33,7 +37,7 @@ public class TestClient {
         }
         op = args[1];
 
-        if(op.equals("leave") || op.equals("join")){
+        if (op.equals("leave") || op.equals("join")) {
             String[] apParts = args[0].split(":");
 
             String ip = apParts[0];
@@ -41,7 +45,7 @@ public class TestClient {
 
             MembershipRmi rmiStub = (MembershipRmi) Naming.lookup("rmi://" + ip + "/" + rmiName);
 
-            switch (op){
+            switch (op) {
                 case "join":
                     rmiStub.join();
                     break;
@@ -51,8 +55,7 @@ public class TestClient {
                 default:
                     break;
             }
-        }
-        else {
+        } else {
             // parse node_ap <ip:port>
             ap = new AccessPoint(args[0]);
 
@@ -85,13 +88,17 @@ public class TestClient {
                 InputStream input = socket.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input));
                 System.out.println("OUT:");
-                String line;
+                String line, answer = "";
                 while ((line = reader.readLine()) != null && !(line).equals(Utils.MSG_END_SERVICE)) {
+                    answer += line + "\n";
                     System.out.println(line);
                 }
                 input.close();
                 writer.close();
                 output.close();
+                Utils.makeDir(CLIENT_LOG_DIRECTORY);
+                String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss'.txt'").format(new Date());
+                Utils.writeToFile(CLIENT_LOG_DIRECTORY + File.separator + timeStamp, "REQUEST:\n" + String.join(" ", args) + "\nSERVER ANSWER:\n" + answer + "ENDLOG");
             } catch (UnknownHostException ex) {
                 System.out.println("Server not found: " + ex.getMessage());
             } catch (IOException ex) {
@@ -100,9 +107,9 @@ public class TestClient {
         }
     }
 
-    private static String getCommand(){
-        if(nArgs == 2) return op;
-        else if(nArgs == 3) return op + " " + opnd + Utils.MSG_END;
+    private static String getCommand() {
+        if (nArgs == 2) return op;
+        else if (nArgs == 3) return op + " " + opnd + "\n" + Utils.MSG_END;
         return null;
     }
 }
