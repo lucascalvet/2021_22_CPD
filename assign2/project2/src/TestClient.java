@@ -60,8 +60,11 @@ public class TestClient {
             InputStream input = socket.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(input));
             String out = reader.readLine();
-            //String out = new String(input.readAllBytes(), StandardCharsets.UTF_8);
-            System.out.println("OUT: " + out);
+            String line;
+            while (!(line = reader.readLine()).equals(Utils.MSG_END_SERVICE)) {
+                out += "\n" + line;
+            }
+            System.out.println("OUT:\n" + out + "\n---");
             input.close();
             writer.close();
             output.close();

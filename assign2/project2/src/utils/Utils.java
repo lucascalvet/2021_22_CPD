@@ -11,10 +11,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class Utils {
-    private final static String BASE_DIR = "src\\filesystem\\";
+    private final static String BASE_DIR = "src" + File.separator + "filesystem" + File.separator;
     private static final int HASH_BITS_SIZE = 256;
     public static final String MSG_END = "\nEND";
     public static final String MSG_TOMBSTONE = "TOMBSTONE";
+    public static final String MSG_END_SERVICE = "END OF SERVICE";
     private static final int HASH_ENCODE_SIZE = 64;
     private static final BigInteger CEIL = BigInteger.ONE.shiftLeft(256);
 
@@ -165,7 +166,7 @@ public class Utils {
     public static String getNLogLines(String hashedId, int n) {
         String line;
         StringBuilder logs = new StringBuilder();
-        File membershipLog = new File(BASE_DIR + hashedId + "\\membership_log.txt");
+        File membershipLog = new File(BASE_DIR + hashedId + File.separator + "membership_log.txt");
         try {
             FileReader fr = new FileReader(membershipLog);
             BufferedReader br = new BufferedReader(fr);
@@ -182,7 +183,7 @@ public class Utils {
     public static Map<String, Integer> readLogs(String hashedId) {
         Map<String, Integer> nodes = new HashMap<String, Integer>();
         String line;
-        File membershipLog = new File(BASE_DIR + hashedId + "\\membership_log.txt");
+        File membershipLog = new File(BASE_DIR + hashedId + File.separator + "membership_log.txt");
         try {
             FileReader fr = new FileReader(membershipLog);
             BufferedReader br = new BufferedReader(fr);
@@ -215,7 +216,7 @@ public class Utils {
 
     public static int updateLogs(String nodeId, Integer counter, String hashedId) {
         Map<String, Integer> logs = readLogs(hashedId);
-        File logFile = new File(BASE_DIR + hashedId + "\\membership_log.txt");
+        File logFile = new File(BASE_DIR + hashedId + File.separator + "membership_log.txt");
 
         // open file
         FileWriter writer = null;

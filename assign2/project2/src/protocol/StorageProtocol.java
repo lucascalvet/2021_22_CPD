@@ -90,21 +90,21 @@ public class StorageProtocol implements Runnable{
                     switch (op) {
                         case "P":
                         case "put":
-                            this.threadPool.execute(new PutProcessor(nodeId, opArg, replicationFactor, port, writer));
+                            this.threadPool.execute(new PutProcessor(nodeId, opArg, replicationFactor, port, socket));
                             break;
                         case "G":
                         case "get":
-                            this.threadPool.execute(new GetProcessor(nodeId, opArg, port, writer));
+                            this.threadPool.execute(new GetProcessor(nodeId, opArg, port, socket));
                             break;
                         case "D":
                         case "delete":
-                            this.threadPool.execute(new DeleteProcessor(nodeId, opArg, replicationFactor, port, writer));
+                            this.threadPool.execute(new DeleteProcessor(nodeId, opArg, replicationFactor, port, socket));
                             break;
                         default:
                             writer.println("Invalid Op");
                     }
                 }
-                writer.println(new Date());
+                //writer.println(new Date());
             }
 
         } catch (IOException ex) {
