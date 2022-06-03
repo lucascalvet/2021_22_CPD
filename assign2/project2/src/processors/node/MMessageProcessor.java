@@ -1,16 +1,15 @@
 package processors.node;
 
 import protocol.Node;
-import utils.Utils;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class UMessageProcessor implements Runnable{
+public class MMessageProcessor implements Runnable{
     private final Node node;
     private final String received;
 
-    public UMessageProcessor(Node node, String received) {
+    public MMessageProcessor(Node node, String received) {
         this.node = node;
         this.received = received;
     }

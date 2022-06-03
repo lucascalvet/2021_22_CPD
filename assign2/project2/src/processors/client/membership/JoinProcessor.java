@@ -49,8 +49,10 @@ public class JoinProcessor implements Runnable {
 
         this.node.setCounter();
 
-        clientWriter.println("Initializing join process");
-        // outer loop that is used for the retransmissions
+        String info = "Initializing join process.";
+        System.out.println(info);
+        clientWriter.println(info);
+
         boolean error = false;
         // multicast >> J << message
         String jMessage = "J " + node.getNodeId() + " " + node.getCounter() + " " + serverSocket.getLocalPort();
@@ -161,14 +163,14 @@ public class JoinProcessor implements Runnable {
         this.node.setAllLogs(nodes);
 
         if (error) {
-            String message = "Failed to join the node";
-            System.out.println(message);
-            clientWriter.println(message);
+            info = "Failed to join the node";
+            System.out.println(info);
+            clientWriter.println(info);
         }
         else {
-            String message = "Joined node successfully. Received logs from " + nReceived + " nodes.";
-            System.out.println(message);
-            clientWriter.println(message);
+            info = "Joined node successfully. Received logs from " + nReceived + " nodes.";
+            System.out.println(info);
+            clientWriter.println(info);
         }
         clientWriter.println(Utils.MSG_END_SERVICE);
 

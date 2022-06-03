@@ -48,7 +48,7 @@ package protocol;
 
 import processors.node.JMessageProcessor;
 import processors.node.LMessageProcessor;
-import processors.node.UMessageProcessor;
+import processors.node.MMessageProcessor;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -114,6 +114,7 @@ public class MembershipNode implements Runnable {
                     // receives a J message
                     case 'J':
                         if (message.length != 4) {
+                            System.out.println("Wrong join message length! Skipping...");
                             continue;
                         }
 
@@ -122,6 +123,7 @@ public class MembershipNode implements Runnable {
                             port = Integer.parseInt(message[3]);
                         }
                         catch (NumberFormatException e) {
+                            System.out.println("Error parsing join message! Skipping...");
                             continue;
                         }
 
@@ -130,6 +132,7 @@ public class MembershipNode implements Runnable {
                     // receives a L message
                     case 'L':
                         if (message.length != 3) {
+                            System.out.println("Error leave join message! Skipping...");
                             continue;
                         }
 
@@ -137,6 +140,7 @@ public class MembershipNode implements Runnable {
                             counter = Integer.parseInt(message[2]);
                         }
                         catch (NumberFormatException e) {
+                            System.out.println("Wrong leave message length! Skipping...");
                             continue;
                         }
 
@@ -145,10 +149,11 @@ public class MembershipNode implements Runnable {
                     // receives a M message
                     case 'U':
                         // TODO: missing getting/parsing membership logs
-                        this.threadPool.execute(new UMessageProcessor(node, received));
+                        this.threadPool.execute(new MMessageProcessor(node, received));
                         break;
                     // ignore wrong messages
                     default:
+                        System.out.println("Got invalid multicast message! Skipping...");
                         continue;
                 }
             }

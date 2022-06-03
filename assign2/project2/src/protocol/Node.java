@@ -24,8 +24,8 @@ public class Node {
         this.hashedId = Utils.encodeToHex(nodeId);
         this.nodeAddress = InetAddress.getByName(nodeId);
         this.storePort = storePort;
-        createDirectories();
-        //setCounter();
+        this.createDirectories();
+        this.setCounter();
     }
 
     public int getREPLICATION_FACTOR(){return REPLICATION_FACTOR;}
@@ -82,6 +82,7 @@ public class Node {
     }
 
     public synchronized void addLog(String nodeId, int counter) {
+        System.out.println("Adding " + nodeId + " " + counter + " to the membership log.");
         Utils.updateLogs(nodeId, counter, this.hashedId);
     }
 

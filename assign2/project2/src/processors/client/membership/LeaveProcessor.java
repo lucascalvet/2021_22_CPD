@@ -22,7 +22,6 @@ public class LeaveProcessor implements Runnable {
     private final ExecutorService threadPool;
     public LeaveProcessor(Node node, Socket clientSocket, MembershipNode membershipNode) {
         this.node = node;
-        this.node.setCounter();
         this.clientSocket = clientSocket;
         this.membershipNode = membershipNode;
         int threadCount = Runtime.getRuntime().availableProcessors();
@@ -60,16 +59,18 @@ public class LeaveProcessor implements Runnable {
             return;
         }
 
-        clientWriter.println("Quitting multicast thread.");
+        System.out.println("Quitting multicast thread.");
 
         this.membershipNode.stop();
 
-        clientWriter.println("Initializing leave process.");
+        String info = "Initializing leave process.";
+        System.out.println(info);
+        clientWriter.println(info);
 
-        node.setCounter();
+        this.node.setCounter();
 
         // creating >> L << message
-        String lMessage = node.getNodeId() + node.getCounter();
+        String lMessage = "L " + node.getNodeId() + " " + node.getCounter();
 
         // multicasting message
         DatagramSocket socket;
@@ -88,7 +89,9 @@ public class LeaveProcessor implements Runnable {
             throw new RuntimeException(e);
         }
 
-        clientWriter.println("Finished leave process.");
+        info = "Finished leave process.";
+        System.out.println(info);
+        clientWriter.println(info);
         clientWriter.println(Utils.MSG_END_SERVICE);
     }
 }

@@ -61,7 +61,6 @@ public class JMessageProcessor implements Runnable{
             }
         }
 
-        System.out.println("Adding " + nodeId + " " + counter + " to the membership log.");
         node.addLog(nodeId, counter);
 
         // wait for a random time from 0 to 3 secs
