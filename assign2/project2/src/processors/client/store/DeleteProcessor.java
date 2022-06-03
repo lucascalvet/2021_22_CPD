@@ -1,5 +1,6 @@
 package processors.client.store;
 
+import protocol.Node;
 import utils.MessageSender;
 import utils.Utils;
 
@@ -12,22 +13,18 @@ import java.util.List;
 
 public class DeleteProcessor implements Runnable{
     private int replicationFactor;
-    private final int port;
+    private final Node node;
     private MessageSender messenger = null;
     private final String key;
-    private final String nodeId;
-    private final String hashedId;
     private final Socket socket;
     private final PrintWriter writer;
     private final int REPLICATION_FACTOR = 3;
     private String message = "";
 
-    public DeleteProcessor(String nodeId, String key, int replicationFactor, int port, Socket socket) throws IOException {
-        this.port = port;
+    public DeleteProcessor(Node node, String key, int replicationFactor, Socket socket) throws IOException {
+        this.node = node;
         this.replicationFactor = replicationFactor;
-        this.nodeId = nodeId;
         this.key = key;
-        this.hashedId = Utils.encodeToHex(nodeId);
         this.socket = socket;
         this.writer = new PrintWriter(socket.getOutputStream(), true);
 
@@ -38,22 +35,16 @@ public class DeleteProcessor implements Runnable{
 
     public void run(){
         boolean deleted = false;
-        List<String> activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
+        List<String> activeNodesSorted = Utils.getActiveMembersSorted(node.getHashedId(), key);
         int nextRep = replicationFactor;
-        if(Utils.fileExists(hashedId + File.separator + "storage" + File.separator + key + ".txt")){
+        if(Utils.fileExists(node.getHashedId() + File.separator + "storage" + File.separator + key + ".txt")){
             nextRep -= 1;
             //System.out.println("DP FileExists");
-            if(!Utils.getFileContent(hashedId + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
-                if(Utils.writeToFile(hashedId + File.separator + "storage" + File.separator + key + ".txt", Utils.MSG_TOMBSTONE, false)){
+            if(!Utils.getFileContent(node.getHashedId() + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
+                if(Utils.writeToFile(node.getHashedId() + File.separator + "storage" + File.separator + key + ".txt", Utils.MSG_TOMBSTONE, false)){
                     deleted = true;
                     //System.out.println("DP TombStoned!");
-                    //writer.println("Pair successfully deleted!");
                 }
-                /*
-                if(Utils.deleteFile(hashedId + File.separator + "storage" + File.separator + key + ".txt")){
-                    writer.println("Pair successfully deleted!");
-                }
-                */
             }
         }
         String deleted_str = "didn't delete (didn't have the pair active to begin with)";
@@ -62,18 +53,23 @@ public class DeleteProcessor implements Runnable{
         }
         if (nextRep < 0){
             nextRep += REPLICATION_FACTOR + 1;
-            for(String node : activeNodesSorted){
-                if(!node.equals(nodeId)){
-                    try {
-                        message = nodeId + " DELETE-> I " + deleted_str + ". Sending to the closest who is not me: " + node;
-                        //System.out.println(message);
-                        writer.println(message);
-                        messenger = new MessageSender(node, port, "D " + String.valueOf(nextRep) + " " + key);
-                    } catch (UnknownHostException e) {
-                        throw new RuntimeException(e);
+            if(activeNodesSorted.size() > 1){
+                for(String node : activeNodesSorted){
+                    if(!node.equals(this.node.getNodeId())){
+                        try {
+                            message = this.node.getNodeId() + " DELETE-> I " + deleted_str + ". Sending to the closest who is not me: " + node;
+                            //System.out.println(message);
+                            writer.println(message);
+                            messenger = new MessageSender(node, this.node.getStorePort(), "D " + String.valueOf(nextRep) + " " + key);
+                        } catch (UnknownHostException e) {
+                            throw new RuntimeException(e);
+                        }
+                        break;
                     }
-                    break;
                 }
+            }
+            else{
+                message = this.node.getNodeId() + " DELETE-> I " + deleted_str + ". I'm alone in the cluster ;(. There aren't any active pairs";
             }
         }
         else if (nextRep > 0){
@@ -82,33 +78,38 @@ public class DeleteProcessor implements Runnable{
             for(String node : activeNodesSorted){
                 if(send){
                     try {
-                        message = nodeId + " DELETE-> I " + deleted_str + ". Sending to the next node: " + node;
+                        message = this.node.getNodeId() + " DELETE-> I " + deleted_str + ". Sending to the next node: " + node;
                         //System.out.println(message);
                         writer.println(message);
-                        messenger = new MessageSender(node, port, "D " + String.valueOf(nextRep) + " " + key);
+                        messenger = new MessageSender(node, this.node.getStorePort(), "D " + String.valueOf(nextRep) + " " + key);
                     } catch (UnknownHostException e) {
                         throw new RuntimeException(e);
                     }
                     sent = true;
                     break;
                 }
-                if(node.equals(nodeId)){
+                if(node.equals(this.node.getNodeId())){
                     send = true;
                 }
             }
             if(!sent){
-                try {
-                    message = nodeId + " DELETE-> I " + deleted_str + ". I was the last of my list so sending it back to the closest: " + activeNodesSorted.get(0);
-                    //System.out.println(message);
-                    writer.println(message);
-                    messenger = new MessageSender(activeNodesSorted.get(0), port, "D " + String.valueOf(nextRep) + " " + key);
-                } catch (UnknownHostException e) {
-                    throw new RuntimeException(e);
+                if(activeNodesSorted.size() < REPLICATION_FACTOR){
+                    message = this.node.getNodeId() + " DELETE-> I " + deleted_str + ". There aren't enough nodes in the cluster. There aren't any active pairs";
+                }
+                else{
+                    try {
+                        message = this.node.getNodeId() + " DELETE-> I " + deleted_str + ". I was the last of my list so sending it back to the closest: " + activeNodesSorted.get(0);
+                        //System.out.println(message);
+                        writer.println(message);
+                        messenger = new MessageSender(activeNodesSorted.get(0), node.getStorePort(), "D " + String.valueOf(nextRep) + " " + key);
+                    } catch (UnknownHostException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
         else{
-            message = nodeId + " DELETE-> I " + deleted_str + ". All pairs already deleted";
+            message = this.node.getNodeId() + " DELETE-> I " + deleted_str + ". All pairs already deleted";
         }
         if (messenger != null){
             messenger.run();

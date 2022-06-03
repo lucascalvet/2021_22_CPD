@@ -2,6 +2,7 @@ package protocol;
 
 import utils.Utils;
 
+import java.io.File;
 import java.net.*;
 import java.util.Map;
 
@@ -12,6 +13,8 @@ public class Node {
     private final String hashedId;
     private final InetAddress nodeAddress;
     private final Integer storePort;
+    private final int REPLICATION_FACTOR = 3;
+    private final int RETRY_FACTOR = 3;
 
     public Node(InetAddress multicastAddr, Integer multicastPort, String nodeId, Integer storePort) throws UnknownHostException {
         this.multicastAddr = multicastAddr;
@@ -21,8 +24,12 @@ public class Node {
         this.nodeAddress = InetAddress.getByName(nodeId);
         this.storePort = storePort;
         createDirectories();
-        setCounter();
+        //setCounter();
     }
+
+    public int getREPLICATION_FACTOR(){return REPLICATION_FACTOR;}
+
+    public int getRETRY_FACTOR(){return RETRY_FACTOR;}
 
     public InetAddress getMulticastAddr() {
         return multicastAddr;
@@ -51,7 +58,9 @@ public class Node {
     public void createDirectories(){
         Utils.makeDir(hashedId);
         //Utils.writeToFile(hashedId + "\\membership_log.txt", nodeId + " 0\n", true);
-        Utils.writeToFile(hashedId + "\\membership_log.txt", "127.0.0.1 0\n127.0.0.2 0\n127.0.0.3 0\n127.0.0.6 0\n127.0.0.5 0\n", true);
+        Utils.writeToFile(hashedId + File.separator + "membership_log.txt", "127.0.0.1 0\n127.0.0.2 0\n127.0.0.3 0\n127.0.0.4 0\n127.0.0.5 0\n", true);
+        //Utils.writeToFile(hashedId + File.separator + "membership_log.txt", "127.0.0.1 0\n", true);
+        //Utils.writeToFile(hashedId + File.separator + "membership_log.txt", "127.0.0.1 0\n127.0.0.2 0\n", true);
         Utils.makeDir(hashedId + "\\storage");
     }
 

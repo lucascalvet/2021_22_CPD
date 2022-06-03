@@ -34,7 +34,6 @@ public class MessageSender implements Runnable{
             while (!(line = reader.readLine()).equals(Utils.MSG_END_SERVICE)) {
                 this.answer += "\n" + line;
             }
-            //this.answer += "\n" + Utils.MSG_END_SERVICE;
             this.answer += "\n" + Utils.MSG_END_SERVICE;
             input.close();
             writer.close();

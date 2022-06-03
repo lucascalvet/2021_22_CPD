@@ -1,12 +1,16 @@
 package processors.node;
 
 import protocol.Node;
+import utils.MessageSender;
 import utils.Utils;
 
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class JMessageProcessor implements Runnable{
     private final int port;
@@ -14,6 +18,7 @@ public class JMessageProcessor implements Runnable{
     private final String hashedId;
     private final int counter;
     private final Node node;
+    private final ExecutorService threadPool;
 
     public JMessageProcessor(Node node, String nodeId, int port, int counter) {
         this.port = port;
@@ -21,10 +26,43 @@ public class JMessageProcessor implements Runnable{
         this.hashedId = Utils.encodeToHex(nodeId);
         this.counter = counter;
         this.node = node;
+        int threadCount = Runtime.getRuntime().availableProcessors();
+        threadPool = Executors.newFixedThreadPool(threadCount);
     }
 
     @Override
     public void run() {
+        //Storage change before membership message is transmitted
+        File dir = new File(Utils.BASE_DIR + node.getHashedId() + File.separator + "storage");
+        File[] storageListing = dir.listFiles();
+        if (storageListing != null) {
+            for (File child : storageListing) {
+                boolean send = false;
+                boolean delete = false;
+                String value = Utils.getFileContent(node.getHashedId() + File.separator + "storage" + File.separator + child.getName());
+                String key = child.getName().replaceFirst("[.][^.]+$", "");
+                if(Utils.getActiveMembers(node.getHashedId()).size() < node.getREPLICATION_FACTOR()){
+                    send = true;
+                }
+                else{
+                    if(Utils.getActiveMembersSorted(node.getHashedId(), key).get(2).equals(node.getNodeId()) && Utils.hashDistance(key, hashedId).compareTo(Utils.hashDistance(key, node.getHashedId())) == -1){
+                        send = true;
+                        delete = true;
+                    }
+                }
+                if(send){
+                    try {
+                        threadPool.execute(new MessageSender(nodeId, node.getStorePort(), "P 1 " + value));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                if(delete){
+                    Utils.writeToFile(node.getHashedId() + File.separator + "storage" + File.separator + child.getName(), Utils.MSG_TOMBSTONE, false);
+                }
+            }
+        }
+
         Utils.updateLogs(nodeId, counter, hashedId);
 
         // wait for a random time from 0 to 3 secs

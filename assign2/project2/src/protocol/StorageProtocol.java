@@ -17,19 +17,16 @@ import java.util.concurrent.Executors;
 
 public class StorageProtocol implements Runnable {
     private final Node node;
-    private final int NTHREADS = 10;
-    private ExecutorService threadPool = Executors.newFixedThreadPool(NTHREADS);
-    private Thread runningThread = null;
+    private final ExecutorService threadPool;
 
     StorageProtocol(Node node) throws UnknownHostException {
         this.node = node;
+        int threadCount = Runtime.getRuntime().availableProcessors();
+        threadPool = Executors.newFixedThreadPool(threadCount);
+        System.out.println(Thread.currentThread().getName() + ": Created thread pool with " + threadCount + " threads");
     }
 
     public void run() {
-        synchronized (this) {
-            this.runningThread = Thread.currentThread();
-        }
-
         MembershipNode membershipNode = new MembershipNode(this.node);;
 
         try (ServerSocket serverSocket = new ServerSocket(node.getStorePort(), 50, node.getAddress())) {
@@ -37,7 +34,6 @@ public class StorageProtocol implements Runnable {
             System.out.println("NodeID: " + node.getNodeId());
 
             while (true) {
-                //System.out.println("ddd");
                 Socket socket = serverSocket.accept();
                 System.out.println("Accepted New Socket");
 
@@ -50,7 +46,7 @@ public class StorageProtocol implements Runnable {
                 String opArg = null;
                 String op = null;
                 String[] commands = null;
-                int replicationFactor = -1;
+                int factor = -1;
 
                 if (commandLine.length() == 0) {
                     writer.println("No message given");
@@ -74,7 +70,7 @@ public class StorageProtocol implements Runnable {
                             writer.println("No operation given");
                             continue;
                         }
-                        replicationFactor = Integer.parseInt(commands[0]);
+                        factor = Integer.parseInt(commands[0]);
                     }
                     if (commands.length >= 2) opArg = commands[1];
 
@@ -92,15 +88,15 @@ public class StorageProtocol implements Runnable {
                 switch (op) {
                     case "P":
                     case "put":
-                        this.threadPool.execute(new PutProcessor(node.getNodeId(), opArg, replicationFactor, node.getStorePort(), socket));
+                        this.threadPool.execute(new PutProcessor(this.node, opArg, factor, socket));
                         break;
                     case "G":
                     case "get":
-                        this.threadPool.execute(new GetProcessor(node.getNodeId(), opArg, node.getStorePort(), socket));
+                        this.threadPool.execute(new GetProcessor(this.node, opArg, factor, socket));
                         break;
                     case "D":
                     case "delete":
-                        this.threadPool.execute(new DeleteProcessor(node.getNodeId(), opArg, replicationFactor, node.getStorePort(), socket));
+                        this.threadPool.execute(new DeleteProcessor(this.node, opArg, factor, socket));
                         break;
                     case "join":
                         this.threadPool.execute(new JoinProcessor(this.node));

@@ -1,5 +1,6 @@
 package processors.client.store;
 
+import protocol.Node;
 import utils.MessageSender;
 import utils.Utils;
 
@@ -13,56 +14,70 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class GetProcessor implements Runnable{
-    private final int port;
     private MessageSender messenger = null;
     private final String key;
-    private final String nodeId;
-    private final String hashedId;
+    private final Node node;
     private final Socket socket;
     private final PrintWriter writer;
     private String message = "";
+    private final int retryFactor;
 
-    public GetProcessor(String nodeId, String key, int port, Socket socket) throws IOException {
-        this.port = port;
-        this.nodeId = nodeId;
+    public GetProcessor(Node node, String key, int retryFactor, Socket socket) throws IOException {
+        this.node = node;
         this.key = key;
-        this.hashedId = Utils.encodeToHex(nodeId);
+        if(retryFactor < 0){
+            this.retryFactor = node.getRETRY_FACTOR();
+        }
+        else{
+            this.retryFactor = retryFactor;
+        }
         this.socket = socket;
         this.writer = new PrintWriter(socket.getOutputStream(), true);
 
         //System.out.println("GP Key: " + key);
+        System.out.println(node.getNodeId() + " GP RetryFactor: " + retryFactor);
     }
 
     public void run(){
-        if(Utils.fileExists(hashedId + File.separator +"storage" + File.separator + key + ".txt") && !Utils.getFileContent(hashedId + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
-            String value = Utils.getFileContent(hashedId + File.separator +"storage" + File.separator + key + ".txt");
-            message = nodeId + " GET-> Value Fetched: " + value;
+        if(Utils.fileExists(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt") && !Utils.getFileContent(node.getHashedId() + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE)){
+            String value = Utils.getFileContent(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt");
+            message = this.node.getNodeId() + " GET-> Value Fetched: " + value;
             //System.out.println(message);
             //writer.println(message);
         }
         else{
-            List<String> activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
+            List<String> activeNodesSorted = Utils.getActiveMembersSorted(node.getHashedId(), key);
             for(int i = 0; i < activeNodesSorted.size(); i++){
                 System.out.println("GP AN" + Integer.toString(i) + "->" + activeNodesSorted.get(i));
             }
-            if(activeNodesSorted.get(0).equals(nodeId)){
-                message = nodeId + " GET-> Value not Found!";
-                //System.out.println(message);
-                //writer.println(message);
+            if(activeNodesSorted.get(0).equals(this.node.getNodeId())){
+                if(retryFactor == 0 || activeNodesSorted.size() == 1){
+                    message = this.node.getNodeId() + " GET-> Value not Found!";
+                    //System.out.println(message);
+                    //writer.println(message);
+                }
+                else{
+                    int index = (int) Math.floor(Math.random()*(activeNodesSorted.size() - 1) + 1);
+                    //System.out.println(node.getNodeId() + " GP Random Index: " + index);
+                    //System.out.println(node.getNodeId() + " GP Random Node: " + activeNodesSorted.get(index));
+                    try {
+                        message = this.node.getNodeId() + " GET-> Retrying and sending request to the random node: " + activeNodesSorted.get(index);
+                        //System.out.println(message);
+                        //writer.println(message);
+                        messenger = new MessageSender(activeNodesSorted.get(index), this.node.getStorePort(), "G " + String.valueOf(retryFactor - 1) + " " + key);
+                    } catch (UnknownHostException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
             }
             else{
-                for(String node : activeNodesSorted){
-                    if(!node.equals(nodeId)){
-                        try {
-                            message = nodeId + " GET-> Sending to the closest node: " + node;
-                            //System.out.println(message);
-                            writer.println(message);
-                            messenger = new MessageSender(node, port, "G 1 " + key);
-                        } catch (UnknownHostException e) {
-                            throw new RuntimeException(e);
-                        }
-                        break;
-                    }
+                try {
+                    message = this.node.getNodeId() + " GET-> Sending to the closest node: " + activeNodesSorted.get(0);
+                    //System.out.println(message);
+                    //writer.println(message);
+                    messenger = new MessageSender(activeNodesSorted.get(0), this.node.getStorePort(), "G " + String.valueOf(retryFactor) + " " + key);
+                } catch (UnknownHostException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
