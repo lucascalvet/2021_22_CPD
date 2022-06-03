@@ -25,7 +25,7 @@ public class Node {
         this.nodeAddress = InetAddress.getByName(nodeId);
         this.storePort = storePort;
         createDirectories();
-        //setCounter();
+        setCounter();
     }
 
     public int getREPLICATION_FACTOR(){return REPLICATION_FACTOR;}
