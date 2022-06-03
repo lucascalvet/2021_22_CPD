@@ -1,31 +1,33 @@
 package processors.client.membership;
 
+import protocol.Node;
+
 import java.io.*;
 import java.net.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class JoinProcessor implements Runnable {
-    private int initializationTcpPort = 590; //TODO: check for open ports and use one of them
-    private int counter;
-    private InetAddress multicastAddress;
-    private Integer multicastPort;
-    private PrintWriter writer;
-    private String nodeId;
-    private Integer timeout = 5000;
+    private final Node node;
 
-    public JoinProcessor(PrintWriter writer, int counter, InetAddress multicastAddress, Integer multicastPort, String nodeId) {
-        this.writer = writer;
-        this.counter = counter;
-        this.multicastAddress = multicastAddress;
-        this.multicastPort = multicastPort;
-        this.nodeId = nodeId;
+    public JoinProcessor(Node node) {
+        this.node = node;
     }
 
     @Override
     public void run() {
+        ServerSocket serverSocket = null;
+        try {
+            serverSocket = new ServerSocket(0);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        int nReceived = 0;
+        Map<String, Integer> nodes = new HashMap<String, Integer>();
         // outer loop that is used for the retransmissions
-        for (int r = 0; r < 3; r++) {
+        for (int r = 0; nReceived < 3 && r < 3; r++) {
             // multicast >> J << message
-            String jMessage =  nodeId + " " + counter + " " + initializationTcpPort;
+            String jMessage =  node.getNodeId() + " " + node.getCounter() + " " + serverSocket.getLocalPort();
 
             DatagramSocket datagramSocket;
             byte[] buf;
@@ -35,7 +37,7 @@ public class JoinProcessor implements Runnable {
                 buf = jMessage.getBytes();
 
                 DatagramPacket packet = null;
-                packet = new DatagramPacket(buf, buf.length, InetAddress.getByName(multicastAddress.getHostName()), multicastPort);
+                packet = new DatagramPacket(buf, buf.length, InetAddress.getByName(node.getMulticastAddr().getHostName()), node.getMulticastPort());
 
                 datagramSocket.send(packet);
                 datagramSocket.close();
@@ -45,18 +47,23 @@ public class JoinProcessor implements Runnable {
 
             // inner loop used to accept the 3 tcp connections
             try {
-                for (int a = 0; a < 3; a++) {
-                    ServerSocket serverSocket = null;
-
-                    serverSocket = new ServerSocket(initializationTcpPort);
+                while (nReceived < 3) {
 
                     try {
-                        serverSocket.setSoTimeout(timeout);
+                        serverSocket.setSoTimeout(3000);
                     }catch (SocketException e){
+                        System.out.println("Error setting socket timeout. " + e.getMessage());
                         break;
                     }
 
-                    Socket socket = serverSocket.accept();
+                    Socket socket = null;
+                    try {
+                        socket = serverSocket.accept();
+                    }
+                    catch (SocketTimeoutException e) {
+                        System.out.println("Socket timed out. Retransmitting " + (2 - r) + " more times...");
+                        break;
+                    }
                     System.out.println("New Socket to receive initialization logs");
 
                     // read one line at time of input (because logs have multiple lines commands are only one line)
@@ -64,19 +71,46 @@ public class JoinProcessor implements Runnable {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(input));
 
                     String line = "";
-                    while ("end".equals(line)) {
-                        line = reader.readLine();
+                    while (true) {
+                        try {
+                            line = reader.readLine();
+                        }
+                        catch (IOException e) {
+                            nReceived--;
+                            break;
+                        }
+                        if (line == null || "end".equals(line)) break;
+                        String[] splited = line.split("\\s+");
+                        if (splited.length == 2) {
+                            try {
+                                String nodeId = splited[0];
+                                int nodeCounter = Integer.parseInt(splited[1]);
+                                if (nodes.containsKey(nodeId)) {
+                                    if (nodes.get(nodeId) < nodeCounter) {
+                                        nodes.put(nodeId, nodeCounter);
+                                    }
+                                }
+                                else {
+                                    nodes.put(nodeId, nodeCounter);
+                                }
+                            }
+                            catch (NumberFormatException e) {
+                                System.out.println("Error parsing membership message from " + socket.getRemoteSocketAddress().toString() + ", while reading counter. Got" + splited[1]);
+                            }
+                        }
+                        else {
+                            System.out.println("Error parsing membership message from " + socket.getRemoteSocketAddress().toString() + ". Wrong number of attributes in log line");
+                        }
                     }
-
-                    if (a == 2) {
-                        // TODO: code to check for most recent log and create them
-                        return; // needed to avoid going to the code that assumes that node is alone
-                    }
+                    nReceived++;
+                    if (nReceived >= 3) break;
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
+
+        this.node.setAllLogs(nodes);
     }
 }
 

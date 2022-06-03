@@ -1,5 +1,6 @@
 package processors.client.store;
 
+import protocol.Node;
 import utils.MessageSender;
 import utils.Utils;
 
@@ -16,28 +17,23 @@ import java.util.concurrent.Executors;
 
 public class PutProcessor implements Runnable{
     private final String value;
+    private final Node node;
     private int replicationFactor;
-    private final int port;
     private MessageSender messenger = null;
     private final String key;
-    private final String nodeId;
-    private final String hashedId;
     private final Socket socket;
     private final PrintWriter writer;
     private final boolean exists;
     private final boolean store;
-    private final int REPLICATION_FACTOR = 3;
     private String message = "";
 
-    public PutProcessor(String nodeId, String opArg, int replicationFactor, int port, Socket socket) throws IOException {
-        this.port = port;
+    public PutProcessor(Node node, String opArg, int replicationFactor, Socket socket) throws IOException {
+        this.node = node;
         this.replicationFactor = replicationFactor;
         this.value = opArg;
-        this.nodeId = nodeId;
         this.key = Utils.encodeToHex(value);
-        this.hashedId = Utils.encodeToHex(nodeId);
-        this.exists = Utils.fileExists(hashedId + File.separator +"storage" + File.separator + key + ".txt");
-        this.store = !exists || Utils.getFileContent(hashedId + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE);
+        this.exists = Utils.fileExists(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt");
+        this.store = !exists || Utils.getFileContent(node.getHashedId() + File.separator + "storage" + File.separator + key + ".txt").equals(Utils.MSG_TOMBSTONE);
         this.socket = socket;
         this.writer = new PrintWriter(socket.getOutputStream(), true);
 
@@ -49,45 +45,39 @@ public class PutProcessor implements Runnable{
     }
 
     public void run(){
-        List<String> activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
+        List<String> activeNodesSorted = Utils.getActiveMembersSorted(node.getHashedId(), key);
         for(int i = 0; i < activeNodesSorted.size(); i++){
             System.out.println("PP AN" + Integer.toString(i) + "->" + activeNodesSorted.get(i));
         }
         String store_str = "didn't store (already had the pair stored)";
         if(replicationFactor == -1){
-            if(activeNodesSorted.get(0).equals(nodeId)){
+            if(activeNodesSorted.get(0).equals(node.getNodeId())){
                 if(store){
+                    store_str = "stored the pair";
                     //System.out.println("PP Stored");
-                    Utils.writeToFile(hashedId + File.separator +"storage" + File.separator + key + ".txt", value, !exists);
+                    Utils.writeToFile(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt", value, !exists);
                 }
-                while(activeNodesSorted.size() < 2){
-                    activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
-                }
-                for(String node : activeNodesSorted){
-                    if(!node.equals(nodeId)){
-                        int nextRep = REPLICATION_FACTOR;
-                        if(store){
-                            store_str = "stored the pair";
-                            nextRep -= 1;
-                        }
-                        try {
-                            message = nodeId + " PUT-> I was the closest and " + store_str + ". Sending to the next one: " + activeNodesSorted.get(1);
-                            //System.out.println(message);
-                            writer.println(message);
-                            messenger = new MessageSender(activeNodesSorted.get(1), port, "P " + String.valueOf(nextRep) + " " + value);
-                        } catch (UnknownHostException e) {
-                            throw new RuntimeException(e);
-                        }
-                        break;
+                if(activeNodesSorted.size() > 1){
+                    int nextRep = node.getREPLICATION_FACTOR() - 1;
+                    try {
+                        message = node.getNodeId() + " PUT-> I was the closest and " + store_str + ". Sending to the next one: " + activeNodesSorted.get(1);
+                        //System.out.println(message);
+                        writer.println(message);
+                        messenger = new MessageSender(activeNodesSorted.get(1), node.getStorePort(), "P " + String.valueOf(nextRep) + " " + value);
+                    } catch (UnknownHostException e) {
+                        throw new RuntimeException(e);
                     }
+                }
+                else{
+                    message = node.getNodeId() + " PUT-> I " + store_str + ". I'm alone in the cluster ;( so we are missing " + String.valueOf(node.getREPLICATION_FACTOR() - 1) + " pair copies to be added when more nodes enter";
                 }
             }
             else{
                 try {
-                    message = nodeId + " PUT-> I wasn't the closest, so I didn't store. Sending to the closest node: " + activeNodesSorted.get(0);
+                    message = node.getNodeId() + " PUT-> I wasn't the closest, so I didn't store. Sending to the closest node: " + activeNodesSorted.get(0);
                     //System.out.println(message);
                     writer.println(message);
-                    messenger = new MessageSender(activeNodesSorted.get(0), port, "P " + String.valueOf(REPLICATION_FACTOR) + " " + value);
+                    messenger = new MessageSender(activeNodesSorted.get(0), node.getStorePort(), "P " + String.valueOf(node.getREPLICATION_FACTOR()) + " " + value);
                 } catch (UnknownHostException e) {
                     throw new RuntimeException(e);
                 }
@@ -98,49 +88,51 @@ public class PutProcessor implements Runnable{
             if(store){
                 //System.out.println("PP Stored");
                 store_str = "stored the pair";
-                Utils.writeToFile(hashedId + File.separator +"storage" + File.separator + key + ".txt", value, !exists);
+                Utils.writeToFile(node.getHashedId() + File.separator +"storage" + File.separator + key + ".txt", value, !exists);
             }
             nextRep -= 1;
             if(nextRep > 0){
-                while(activeNodesSorted.size() < 4 - nextRep){
-                    activeNodesSorted = Utils.getActiveMembersSorted(hashedId, key);
-                }
                 boolean send = false;
                 boolean sent = false;
                 for(String node : activeNodesSorted){
                     if(send){
                         try {
-                            message = nodeId + " PUT-> I " + store_str + ". Sending to the next one: " + node;
+                            message = this.node.getNodeId() + " PUT-> I " + store_str + ". Sending to the next one: " + node;
                             //System.out.println(message);
                             writer.println(message);
-                            messenger = new MessageSender(node, port, "P " + String.valueOf(nextRep) + " " + value);
+                            messenger = new MessageSender(node, this.node.getStorePort(), "P " + String.valueOf(nextRep) + " " + value);
                         } catch (UnknownHostException e) {
                             throw new RuntimeException(e);
                         }
                         sent = true;
                         break;
                     }
-                    if(node.equals(nodeId)){
+                    if(node.equals(this.node.getNodeId())){
                         send = true;
                     }
                 }
                 if(!sent){
-                    try {
-                        message = nodeId + " PUT-> I " + store_str + ". I was the last of my list so sending it back to the closest: " + activeNodesSorted.get(0);
-                        //System.out.println(message);
-                        writer.println(message);
-                        messenger = new MessageSender(activeNodesSorted.get(0), port, "P " + String.valueOf(nextRep) + " " + value);
-                    } catch (UnknownHostException e) {
-                        throw new RuntimeException(e);
+                    if(activeNodesSorted.size() < node.getREPLICATION_FACTOR()){
+                        message = node.getNodeId() + " PUT-> I " + store_str + ". But there aren't enough nodes in the cluster, so we are missing " + String.valueOf(nextRep) + " pair copies to be added when more nodes enter";
+                    }
+                    else{
+                        try {
+                            message = node.getNodeId() + " PUT-> I " + store_str + ". I was the last of my list so sending it back to the closest: " + activeNodesSorted.get(0);
+                            //System.out.println(message);
+                            writer.println(message);
+                            messenger = new MessageSender(activeNodesSorted.get(0), node.getStorePort(), "P " + String.valueOf(nextRep) + " " + value);
+                        } catch (UnknownHostException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                 }
             }
             else{
                 if(store){
-                    message = nodeId + " PUT-> I stored the pair and all pairs are now stored";
+                    message = node.getNodeId() + " PUT-> I stored the pair and all pairs are now stored";
                 }
                 else{
-                    message = nodeId + " PUT-> I didn't store the pair but all pairs are now stored";
+                    message = node.getNodeId() + " PUT-> I didn't store the pair but all pairs are now stored";
                 }
             }
         }

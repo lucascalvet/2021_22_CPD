@@ -12,6 +12,7 @@ public class UMessageProcessor implements Runnable{
 
     @Override
     public void run() {
+
         // TODO: update membership logs, by comparing logs received
     }
 }

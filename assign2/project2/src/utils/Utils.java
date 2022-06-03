@@ -11,7 +11,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class Utils {
-    private final static String BASE_DIR = "src" + File.separator + "filesystem" + File.separator;
+    public final static String BASE_DIR = "src" + File.separator + "filesystem" + File.separator;
     private static final int HASH_BITS_SIZE = 256;
     public static final String MSG_END = "\nEND";
     public static final String MSG_TOMBSTONE = "TOMBSTONE";
@@ -84,7 +84,7 @@ public class Utils {
         return new BigInteger(originalString, 16);
     }
 
-    private static BigInteger hashDistance(String firstString, String secondString) {
+    public static BigInteger hashDistance(String firstString, String secondString) {
         BigInteger firstBi = stringToHex(firstString).mod(CEIL);
         BigInteger secondBi = stringToHex(encodeToHex(secondString)).mod(CEIL);
         BigInteger distance = secondBi.subtract(firstBi);
@@ -259,5 +259,31 @@ public class Utils {
             }
         }
         return 0;
+    }
+
+    public static void updateAllLogs(Map<String, Integer> logs, String hashedId){
+        File logFile = new File(BASE_DIR + hashedId + "\\membership_log.txt");
+
+        // open file
+        FileWriter writer = null;
+
+        try {
+            writer = new FileWriter(logFile, false);
+
+            FileWriter finalWriter = writer;
+            logs.forEach((key, value) -> {
+                String log = key + " " + value + "\n";
+                try {
+                    finalWriter.write(log);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
+            writer.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 }
